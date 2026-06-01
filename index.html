@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>小丑牌 · Joker Cards</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Noto+Serif+SC:wght@500;700;900&family=JetBrains+Mono:wght@500;700&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- LEFT: run info -->
+    <aside class="rail rail-left">
+      <div class="panel blind-panel" id="blindPanel">
+        <div class="panel-label">本轮目标</div>
+        <div class="blind-name" id="blindName">小盲</div>
+        <div class="blind-target">
+          <span class="chip-icon">◆</span>
+          <span id="blindTarget">300</span>
+        </div>
+        <div class="blind-reward">
+          奖励 <span class="gold">$<span id="blindReward">3</span></span>
+        </div>
+      </div>
+
+      <div class="panel score-panel">
+        <div class="panel-label">当前得分</div>
+        <div class="round-score" id="roundScore">0</div>
+        <div class="last-hand" id="lastHand">
+          <div class="last-hand-name">—</div>
+          <div class="last-hand-formula">
+            <span class="chips-pill">0</span>
+            <span class="x">×</span>
+            <span class="mult-pill">0</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel stats-panel">
+        <div class="stat">
+          <div class="stat-label">手牌</div>
+          <div class="stat-value blue" id="handsLeft">4</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">弃牌</div>
+          <div class="stat-value red" id="discardsLeft">3</div>
+        </div>
+        <div class="stat wide">
+          <div class="stat-label">资金</div>
+          <div class="stat-value gold" id="money">$4</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">关卡</div>
+          <div class="stat-value" id="ante">1 / 8</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">轮次</div>
+          <div class="stat-value" id="round">1</div>
+        </div>
+      </div>
+
+      <button class="ghost-btn" id="runInfoBtn">手牌等级 ▾</button>
+    </aside>
+
+    <!-- CENTER: table -->
+    <main class="table">
+      <header class="top-bar">
+        <div class="brand">
+          <span class="brand-mark">♠♥♦♣</span>
+          <span class="brand-title">小丑牌</span>
+          <span class="brand-sub">JOKER · POKER · ROGUELIKE</span>
+        </div>
+        <div class="joker-row" id="jokerRow">
+          <!-- joker cards injected here -->
+        </div>
+      </header>
+
+      <section class="play-area">
+        <!-- Hand type preview -->
+        <div class="hand-preview" id="handPreview">
+          <div class="hand-preview-name">选择牌组成牌型</div>
+          <div class="hand-preview-formula">
+            <span class="chips-pill">0</span>
+            <span class="x">×</span>
+            <span class="mult-pill">0</span>
+          </div>
+        </div>
+
+        <!-- Played cards area (animation target) -->
+        <div class="played-row" id="playedRow"></div>
+
+        <!-- Player's hand -->
+        <div class="hand-row" id="handRow"></div>
+
+        <!-- Action buttons -->
+        <div class="actions">
+          <button class="btn btn-play" id="playBtn" disabled>
+            <span class="btn-main">出牌</span>
+            <span class="btn-sub">Play Hand</span>
+          </button>
+          <div class="sort-buttons">
+            <button class="btn btn-sort" id="sortRankBtn">按点数</button>
+            <button class="btn btn-sort" id="sortSuitBtn">按花色</button>
+          </div>
+          <button class="btn btn-discard" id="discardBtn" disabled>
+            <span class="btn-main">弃牌</span>
+            <span class="btn-sub">Discard</span>
+          </button>
+        </div>
+
+        <div class="deck-count">
+          <span id="deckCount">52</span> / <span id="deckTotal">52</span> 张
+        </div>
+      </section>
+    </main>
+
+    <!-- RIGHT: consumables -->
+    <aside class="rail rail-right">
+      <div class="panel consum-panel">
+        <div class="panel-label">补给物</div>
+        <div class="consum-row" id="consumRow"></div>
+      </div>
+      <div class="panel tips-panel">
+        <div class="panel-label">提示</div>
+        <ul class="tips">
+          <li>每出一手牌 = <b>筹码 × 倍数</b></li>
+          <li>组成 <b>对子 / 同花 / 顺子</b> 等可大幅加成</li>
+          <li>击败 <b>盲注</b> 获得金币，到商店购买小丑</li>
+          <li>小丑会改变计分规则，搭配出 combo</li>
+        </ul>
+      </div>
+    </aside>
+
+    <!-- Modal: hand levels -->
+    <div class="modal hidden" id="handLevelsModal">
+      <div class="modal-card">
+        <header class="modal-header">
+          <h2>手牌等级</h2>
+          <button class="close-x" data-close>✕</button>
+        </header>
+        <div class="hand-levels" id="handLevelsList"></div>
+      </div>
+    </div>
+
+    <!-- Modal: shop -->
+    <div class="modal hidden" id="shopModal">
+      <div class="modal-card shop-card">
+        <header class="modal-header">
+          <h2>商店</h2>
+          <div class="shop-money">资金 <span class="gold" id="shopMoney">$0</span></div>
+        </header>
+        <div class="shop-grid" id="shopGrid"></div>
+        <footer class="shop-footer">
+          <button class="btn btn-discard" id="rerollBtn">重抽 $<span id="rerollCost">5</span></button>
+          <button class="btn btn-play" id="nextRoundBtn">
+            <span class="btn-main">下一轮</span>
+            <span class="btn-sub">Next Round</span>
+          </button>
+        </footer>
+      </div>
+    </div>
+
+    <!-- Modal: blind select -->
+    <div class="modal hidden" id="blindSelectModal">
+      <div class="modal-card blind-select-card">
+        <header class="modal-header">
+          <h2>选择盲注</h2>
+        </header>
+        <div class="blind-options" id="blindOptions"></div>
+      </div>
+    </div>
+
+    <!-- Modal: game over / win -->
+    <div class="modal hidden" id="endModal">
+      <div class="modal-card end-card">
+        <h2 id="endTitle">游戏结束</h2>
+        <p id="endText"></p>
+        <button class="btn btn-play" id="restartBtn">
+          <span class="btn-main">再来一局</span>
+          <span class="btn-sub">Restart Run</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- floating score popups portal -->
+    <div id="popupLayer" class="popup-layer"></div>
+  </div>
+
+  <script type="module" src="./src/game.js"></script>
+</body>
+</html>
