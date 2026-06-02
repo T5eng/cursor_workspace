@@ -191,9 +191,14 @@ export class TutorialController {
   }
 
   exitToGame() {
+    const hadSavedRun = this.api.hasRunSnapshot();
     this.finish(false);
     TutorialController.markCompleted();
-    this.api.startNormalRun();
+    if (hadSavedRun) {
+      this.api.restoreRunSnapshot();
+    } else {
+      this.api.startNormalRun();
+    }
   }
 
   finish(markDone = true) {
@@ -298,7 +303,9 @@ export class TutorialController {
 
     nextBtn.classList.toggle('hidden', isAction && step.kind !== 'shop');
     skipBtn.style.visibility = isLast ? 'hidden' : 'visible';
-    nextMain.textContent = step.nextLabel || (isLast ? '开始正式游戏' : '继续');
+    const returning = this.api.hasRunSnapshot();
+    skipBtn.textContent = returning ? '返回游戏' : '跳过教程';
+    nextMain.textContent = step.nextLabel || (isLast ? (returning ? '返回游戏' : '开始正式游戏') : '继续');
 
     this.overlay.classList.remove('hidden');
     document.body.classList.add('tutorial-active');

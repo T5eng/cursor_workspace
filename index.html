@@ -120,7 +120,7 @@
 
         <div class="deck-count">
           <span id="deckCount">52</span> / <span id="deckTotal">52</span> 张
-          <span class="mobile-hint"> · 点选手牌 · 下方出牌/弃牌</span>
+          <span class="mobile-hint"> · 点选手牌 · 点小丑看说明 · 下方出牌/弃牌</span>
         </div>
       </section>
     </main>
@@ -138,6 +138,7 @@
           <li>组成 <b>对子 / 同花 / 顺子</b> 等可大幅加成</li>
           <li>击败 <b>盲注</b> 获得金币，到商店购买小丑</li>
           <li>小丑会改变计分规则，搭配出 combo</li>
+          <li>点击小丑或升级券可查看详细说明</li>
         </ul>
       </div>
     </aside>
@@ -215,6 +216,23 @@
           <span class="btn-main">再来一局</span>
           <span class="btn-sub">Restart Run</span>
         </button>
+      </div>
+    </div>
+
+    <!-- Modal: item description (tap / click on jokers & shop items) -->
+    <div class="modal hidden" id="itemTipModal">
+      <div class="modal-card item-tip-card">
+        <header class="modal-header">
+          <h2 id="itemTipTitle">说明</h2>
+          <button type="button" class="close-x" data-close-item-tip aria-label="关闭">✕</button>
+        </header>
+        <p class="item-tip-body" id="itemTipBody"></p>
+        <footer class="item-tip-footer">
+          <button type="button" class="btn btn-play" id="itemTipCloseBtn">
+            <span class="btn-main">知道了</span>
+            <span class="btn-sub">OK</span>
+          </button>
+        </footer>
       </div>
     </div>
 

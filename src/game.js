@@ -3,7 +3,7 @@
 // =============================================================
 
 import {
-  createDeck, shuffle, evaluateHand,
+  Card, createDeck, shuffle, evaluateHand,
   HAND_TYPES, HAND_LABELS, HAND_BASE, chipsAndMultFor, defaultHandLevels
 } from './cards.js';
 import { JOKER_DEFS, JOKERS_BY_ID, rollShopJokers } from './jokers.js';
@@ -106,10 +106,107 @@ const els = {
   startGameBtn: $('startGameBtn'),
   startTutorialBtn: $('startTutorialBtn'),
   resumeTutorialBtn: $('resumeTutorialBtn'),
-  openTutorialBtn: $('openTutorialBtn')
+  openTutorialBtn: $('openTutorialBtn'),
+
+  itemTipModal: $('itemTipModal'),
+  itemTipTitle: $('itemTipTitle'),
+  itemTipBody: $('itemTipBody'),
+  itemTipCloseBtn: $('itemTipCloseBtn')
 };
 
 let tutorialController = null;
+/** @type {object|null} Saved run when entering tutorial mid-game */
+let runSnapshot = null;
+
+function cardToJSON(c) {
+  return { rank: c.rank, suit: c.suit, id: c.id };
+}
+
+function cardFromJSON(o) {
+  const c = new Card(o.rank, o.suit);
+  c.id = o.id;
+  return c;
+}
+
+function saveRunSnapshot() {
+  runSnapshot = {
+    deck: run.deck.map(cardToJSON),
+    drawPile: run.drawPile.map(cardToJSON),
+    hand: run.hand.map(cardToJSON),
+    selected: [...run.selected],
+    jokers: run.jokers.map(j => j.id),
+    money: run.money,
+    ante: run.ante,
+    blindIndex: run.blindIndex,
+    blindBeaten: [...run.blindBeaten],
+    handsLeft: run.handsLeft,
+    discardsLeft: run.discardsLeft,
+    roundScore: run.roundScore,
+    levels: { ...run.levels },
+    rerollCost: run.rerollCost,
+    shop: run.shop ? {
+      jokers: run.shop.jokers.map(j => j.id),
+      boosters: run.shop.boosters.map(b => ({ ...b })),
+      sold: [...run.shop.sold]
+    } : null,
+    phase: run.phase
+  };
+}
+
+function clearRunSnapshot() {
+  runSnapshot = null;
+}
+
+function hasRunSnapshot() {
+  return runSnapshot != null;
+}
+
+function restoreRunSnapshot() {
+  if (!runSnapshot) return;
+  const s = runSnapshot;
+  run.deck = s.deck.map(cardFromJSON);
+  run.drawPile = s.drawPile.map(cardFromJSON);
+  run.hand = s.hand.map(cardFromJSON);
+  run.selected = new Set(s.selected);
+  run.jokers = s.jokers.map(id => jokerFromId(id)).filter(Boolean);
+  run.money = s.money;
+  run.ante = s.ante;
+  run.blindIndex = s.blindIndex;
+  run.blindBeaten = [...s.blindBeaten];
+  run.handsLeft = s.handsLeft;
+  run.discardsLeft = s.discardsLeft;
+  run.roundScore = s.roundScore;
+  run.levels = { ...s.levels };
+  run.rerollCost = s.rerollCost;
+  run.isTutorial = false;
+  run.tutorialStep = null;
+  run.phase = s.phase;
+  if (s.shop) {
+    run.shop = {
+      jokers: s.shop.jokers.map(id => jokerFromId(id)).filter(Boolean),
+      boosters: s.shop.boosters.map(b => ({ ...b })),
+      sold: new Set(s.shop.sold)
+    };
+  } else {
+    run.shop = null;
+  }
+  clearRunSnapshot();
+  tutorialController?.finish(false);
+  els.welcomeModal.classList.add('hidden');
+  closeAllModals();
+  els.playedRow.innerHTML = '';
+  if (run.phase === 'shop' && run.shop) {
+    renderShop();
+    els.shopModal.classList.remove('hidden');
+  } else if (run.phase === 'blindSelect') {
+    showBlindSelect();
+  } else if (run.phase === 'gameover') {
+    gameOver();
+  } else if (run.phase === 'win') {
+    win();
+  }
+  renderAll();
+}
 
 function requirementForRun() {
   if (run.isTutorial) return run.tutorialTarget;
@@ -120,12 +217,33 @@ function notifyTutorial(event, data) {
   tutorialController?.onGameEvent(event, data);
 }
 
+function showItemTip(title, body) {
+  els.itemTipTitle.textContent = title;
+  els.itemTipBody.textContent = body;
+  els.itemTipModal.classList.remove('hidden');
+}
+
+function hideItemTip() {
+  els.itemTipModal.classList.add('hidden');
+}
+
+function bindTipClick(el, title, body) {
+  el.addEventListener('click', (e) => {
+    e.stopPropagation();
+    showItemTip(title, body);
+  });
+}
+
 const gameApi = {
   get run() { return run; },
   get els() { return els; },
   initTutorialRun,
   startNormalRun,
   closeAllModals,
+  saveRunSnapshot,
+  clearRunSnapshot,
+  hasRunSnapshot,
+  restoreRunSnapshot,
   setHand(specs) {
     run.hand = cardsFromSpecs(specs);
     run.drawPile = [];
@@ -207,11 +325,21 @@ function jokerEl(j) {
   el.className = 'joker';
   el.dataset.id = j.id;
   el.dataset.tip = `${j.name}\n${j.desc}`;
+  el.setAttribute('role', 'button');
+  el.setAttribute('tabindex', '0');
+  el.setAttribute('aria-label', `查看 ${j.name} 说明`);
   if (j.color) el.style.borderColor = j.color;
   el.innerHTML = `
     <div class="joker-art" style="${j.color ? `color:${j.color};` : ''}">${j.art}</div>
     <div class="joker-name">${j.name}</div>
   `;
+  bindTipClick(el, j.name, j.desc);
+  el.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      showItemTip(j.name, j.desc);
+    }
+  });
   return el;
 }
 
@@ -570,11 +698,16 @@ function renderShop(summary) {
     const card = document.createElement('div');
     card.className = 'joker';
     card.style.borderColor = 'var(--blue)';
-    card.dataset.tip = `${b.name}\n升级一次 ${HAND_LABELS[b.handType]}\n该牌型基础筹码与倍数提升`;
+    const tipBody = `升级一次 ${HAND_LABELS[b.handType]}\n该牌型基础筹码与倍数提升`;
+    card.dataset.tip = `${b.name}\n${tipBody}`;
+    card.setAttribute('role', 'button');
+    card.setAttribute('tabindex', '0');
+    card.setAttribute('aria-label', `查看 ${b.name} 说明`);
     card.innerHTML = `
       <div class="joker-art" style="color:var(--blue);">${b.art}</div>
       <div class="joker-name" style="color:var(--blue);">${b.name}</div>
     `;
+    bindTipClick(card, b.name, tipBody);
     wrap.appendChild(card);
     const price = document.createElement('button');
     price.className = 'price';
@@ -700,6 +833,7 @@ function restart() {
 
 // ---------- Init ----------
 function initRun() {
+  clearRunSnapshot();
   run.deck = createDeck();
   run.drawPile = [];
   run.hand = [];
@@ -746,6 +880,7 @@ function initTutorialRun() {
 }
 
 function startNormalRun() {
+  clearRunSnapshot();
   tutorialController?.finish(false);
   els.welcomeModal.classList.add('hidden');
   initRun();
@@ -756,6 +891,7 @@ function closeAllModals() {
   els.shopModal.classList.add('hidden');
   els.blindSelectModal.classList.add('hidden');
   els.endModal.classList.add('hidden');
+  hideItemTip();
 }
 
 function showWelcome() {
@@ -764,8 +900,11 @@ function showWelcome() {
   els.welcomeModal.classList.remove('hidden');
 }
 
-function startTutorial() {
+function startTutorial({ saveProgress = false } = {}) {
+  if (saveProgress) saveRunSnapshot();
+  else clearRunSnapshot();
   els.welcomeModal.classList.add('hidden');
+  hideItemTip();
   if (!tutorialController) tutorialController = new TutorialController(gameApi);
   tutorialController.start();
 }
@@ -795,6 +934,12 @@ document.querySelectorAll('[data-close]').forEach(b => {
   b.addEventListener('click', () => b.closest('.modal').classList.add('hidden'));
 });
 
+els.itemTipCloseBtn?.addEventListener('click', hideItemTip);
+document.querySelector('[data-close-item-tip]')?.addEventListener('click', hideItemTip);
+els.itemTipModal?.addEventListener('click', (e) => {
+  if (e.target === els.itemTipModal) hideItemTip();
+});
+
 document.addEventListener('keydown', (e) => {
   if (run.phase === 'playing') {
     if (e.code === 'Space' || e.code === 'Enter') {
@@ -813,6 +958,8 @@ els.startTutorialBtn?.addEventListener('click', startTutorial);
 els.resumeTutorialBtn?.addEventListener('click', startTutorial);
 els.openTutorialBtn?.addEventListener('click', () => {
   closeAllModals();
-  startTutorial();
+  const inProgress = els.welcomeModal.classList.contains('hidden') &&
+    run.phase !== 'gameover' && run.phase !== 'win';
+  startTutorial({ saveProgress: inProgress && !run.isTutorial });
 });
 showWelcome();
