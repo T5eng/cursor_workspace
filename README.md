@@ -9,11 +9,11 @@
 
 ## 在线游玩（GitHub Pages）
 
-部署完成后，手机/电脑浏览器打开：
-
 **https://t5eng.github.io/cursor_workspace/**
 
-（每次推送到 `main` 会自动重新部署，约 1–2 分钟生效。）
+推送到 `main` 后会自动部署到 `gh-pages` 分支（约 1–2 分钟）。
+
+> **首次使用**：若链接 404，请到仓库 [Settings → Pages](https://github.com/T5eng/cursor_workspace/settings/pages)，Source 选 **Deploy from a branch** → 分支 **`gh-pages`** → 目录 **`/ (root)`**。详见 [docs/GITHUB_PAGES_SETUP.md](docs/GITHUB_PAGES_SETUP.md)。
 
 ---
 
