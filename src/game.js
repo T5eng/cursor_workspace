@@ -4,11 +4,18 @@
 
 import {
   createDeck, shuffle, evaluateHand,
-  HAND_TYPES, HAND_LABELS, HAND_BASE, chipsAndMultFor, defaultHandLevels
+  HAND_TYPES, HAND_LABELS, chipsAndMultFor, defaultHandLevels,
+  markHandDiscovered, SECRET_HANDS
 } from './cards.js';
-import { JOKER_DEFS, JOKERS_BY_ID, rollShopJokers } from './jokers.js';
+import { rollShopJokers } from './jokers.js';
 import { scoreHand } from './scorer.js';
 import { TutorialController, cardsFromSpecs, jokerFromId } from './tutorial.js';
+import {
+  rollBossBlind, bossScoreMult, applyBossRoundStart, clearBossCardDebuffs,
+  validateBossPlay, afterBossHandPlayed, getRoundHandSize, getRoundHands, getRoundDiscards
+} from './bosses.js';
+import { rollShopPlanets, planetLabel } from './planets.js';
+import { rollSkipTag } from './tags.js';
 
 // ---------- Constants ----------
 const STARTING_HANDS = 4;
@@ -17,42 +24,58 @@ const HAND_SIZE = 8;
 const JOKER_SLOTS = 5;
 const ANTES_TO_WIN = 8;
 
-// Blind structure per ante. Score requirement scales with ante.
-const BLIND_TYPES = [
-  { key: 'small', name: '小盲', emoji: '◐', mult: 1.0, reward: 3 },
-  { key: 'big',   name: '大盲', emoji: '●', mult: 1.5, reward: 4 },
-  { key: 'boss',  name: 'BOSS', emoji: '☠', mult: 2.0, reward: 5 }
-];
-
-// Base score requirement for ante 1's small blind; scales per ante.
+// Balatro blind rewards & base chip requirements (ante 1–8)
+const BLIND_META = {
+  small: { name: '小盲', emoji: '◐', reward: 3 },
+  big:   { name: '大盲', emoji: '●', reward: 4 },
+  boss:  { name: 'Boss', emoji: '☠', reward: 5 }
+};
 const BASE_REQ = [300, 800, 2000, 5000, 11000, 20000, 35000, 50000];
 
-function requirementFor(ante, blindIndex) {
+function requirementForBlind(ante, blindKey, boss = null) {
   const base = BASE_REQ[Math.min(ante - 1, BASE_REQ.length - 1)];
-  return Math.floor(base * BLIND_TYPES[blindIndex].mult);
+  const mult = blindKey === 'boss' ? bossScoreMult(boss, 'boss')
+    : blindKey === 'big' ? 1.5 : 1;
+  return Math.floor(base * mult);
+}
+
+function freshAnteProgress() {
+  return { small: 'open', big: 'open', boss: 'open' };
 }
 
 // ---------- Run state ----------
 const run = {
-  deck: [],          // master deck (does not shrink between rounds)
-  drawPile: [],      // current draw pile (shrinks during a round)
-  hand: [],          // cards in player's hand
+  deck: [],
+  drawPile: [],
+  discardPile: [],
+  hand: [],
   selected: new Set(),
-  jokers: [],        // active jokers
+  jokers: [],
   money: 4,
   ante: 1,
-  blindIndex: 0,     // 0=small, 1=big, 2=boss
-  blindBeaten: [false, false, false],
+  blindKey: null,       // 'small' | 'big' | 'boss'
+  anteProgress: freshAnteProgress(),
+  boss: null,
+  seenBosses: new Set(),
+  pillarPlayedIds: new Set(),
+  discoveredHands: new Set(['High Card', 'Pair', 'Two Pair', 'Three of a Kind', 'Straight', 'Flush', 'Full House', 'Four of a Kind', 'Straight Flush']),
   handsLeft: STARTING_HANDS,
   discardsLeft: STARTING_DISCARDS,
   roundScore: 0,
   levels: defaultHandLevels(),
   rerollCost: 5,
-  shop: null,       // current shop offer
-  phase: 'blindSelect', // 'blindSelect' | 'playing' | 'shop' | 'gameover' | 'win'
+  shop: null,
+  phase: 'blindSelect',
   isTutorial: false,
   tutorialStep: null,
-  tutorialTarget: 40
+  tutorialTarget: 40,
+  bonusHandsNextBlind: 0,
+  bonusDiscardsNextBlind: 0,
+  shopDiscount: 0,
+  freePlanetNextShop: false,
+  forcedSelectId: null,
+  bossRound: null,
+  cashOutSummary: null
 };
 
 // ---------- DOM refs ----------
@@ -94,6 +117,9 @@ const els = {
 
   blindSelectModal: $('blindSelectModal'),
   blindOptions: $('blindOptions'),
+  cashOutModal: $('cashOutModal'),
+  cashOutBody: $('cashOutBody'),
+  cashOutContinueBtn: $('cashOutContinueBtn'),
 
   endModal: $('endModal'),
   endTitle: $('endTitle'),
@@ -113,7 +139,18 @@ let tutorialController = null;
 
 function requirementForRun() {
   if (run.isTutorial) return run.tutorialTarget;
-  return requirementFor(run.ante, run.blindIndex);
+  return requirementForBlind(run.ante, run.blindKey || 'small', run.boss);
+}
+
+function anteRoundNumber() {
+  const done = ['small', 'big', 'boss'].filter(k =>
+    run.anteProgress[k] === 'beaten' || run.anteProgress[k] === 'skipped'
+  ).length;
+  return (run.ante - 1) * 3 + done + (run.phase === 'playing' ? 1 : 0);
+}
+
+function sellValue(joker) {
+  return Math.max(1, Math.floor(joker.cost / 2));
 }
 
 function notifyTutorial(event, data) {
@@ -141,13 +178,9 @@ const gameApi = {
     renderBlind();
   },
   startRound() {
-    run.phase = 'playing';
-    run.handsLeft = STARTING_HANDS;
-    run.discardsLeft = STARTING_DISCARDS;
-    run.roundScore = 0;
-    run.selected.clear();
+    run.blindKey = 'small';
     els.blindSelectModal.classList.add('hidden');
-    renderAll();
+    startBlind('small');
   },
   clearSelection() {
     run.selected.clear();
@@ -165,7 +198,7 @@ const gameApi = {
     const greedy = jokerFromId('greedy');
     run.shop = {
       jokers: [lusty, greedy].filter(Boolean),
-      boosters: [],
+      planets: [],
       sold: new Set()
     };
     run.rerollCost = 5;
@@ -202,17 +235,60 @@ function cardEl(card, { dealing = false, interactive = true } = {}) {
   return el;
 }
 
-function jokerEl(j) {
+function jokerEl(j, index) {
   const el = document.createElement('div');
   el.className = 'joker';
   el.dataset.id = j.id;
-  el.dataset.tip = `${j.name}\n${j.desc}`;
+  el.dataset.index = String(index);
+  el.dataset.tip = `${j.name}\n${j.desc}${index >= 0 ? `\n右键出售 $${sellValue(j)}` : ''}`;
   if (j.color) el.style.borderColor = j.color;
+  if (index >= 0 && run.bossRound?.disabledJokerIndex === index) el.classList.add('joker-disabled');
   el.innerHTML = `
     <div class="joker-art" style="${j.color ? `color:${j.color};` : ''}">${j.art}</div>
     <div class="joker-name">${j.name}</div>
   `;
+  if (index >= 0) {
+    el.draggable = true;
+    el.addEventListener('dragstart', (e) => {
+      e.dataTransfer.setData('text/joker-index', String(index));
+      el.classList.add('joker-dragging');
+    });
+    el.addEventListener('dragend', () => el.classList.remove('joker-dragging'));
+    el.addEventListener('dragover', (e) => e.preventDefault());
+    el.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const from = Number(e.dataTransfer.getData('text/joker-index'));
+      const to = index;
+      if (Number.isNaN(from) || from === to) return;
+      const [item] = run.jokers.splice(from, 1);
+      run.jokers.splice(to, 0, item);
+      renderJokers();
+    });
+    el.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      sellJoker(index);
+    });
+  }
   return el;
+}
+
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.className = 'game-toast';
+  t.textContent = msg;
+  els.popupLayer.appendChild(t);
+  setTimeout(() => t.remove(), 2400);
+}
+
+function sellJoker(index) {
+  if (run.phase !== 'shop' && run.phase !== 'playing') return;
+  const j = run.jokers[index];
+  if (!j) return;
+  run.money += sellValue(j);
+  run.jokers.splice(index, 1);
+  renderJokers();
+  renderStats();
+  if (run.phase === 'shop') renderShop(run.cashOutSummary);
 }
 
 function renderHand() {
@@ -223,7 +299,7 @@ function renderHand() {
 
 function renderJokers() {
   els.jokerRow.innerHTML = '';
-  for (const j of run.jokers) els.jokerRow.appendChild(jokerEl(j));
+  run.jokers.forEach((j, i) => els.jokerRow.appendChild(jokerEl(j, i)));
   // fill empty slots
   for (let i = run.jokers.length; i < JOKER_SLOTS; i++) {
     const slot = document.createElement('div');
@@ -237,17 +313,24 @@ function renderStats() {
   els.discardsLeft.textContent = run.discardsLeft;
   els.money.textContent = `$${run.money}`;
   els.ante.textContent = `${run.ante} / ${ANTES_TO_WIN}`;
-  els.round.textContent = (run.ante - 1) * 3 + run.blindIndex + 1;
+  els.round.textContent = run.isTutorial ? 1 : anteRoundNumber();
   els.deckCount.textContent = run.drawPile.length;
   els.deckTotal.textContent = run.deck.length;
   els.roundScore.textContent = run.roundScore;
 }
 
 function renderBlind() {
-  const b = BLIND_TYPES[run.blindIndex];
-  els.blindName.textContent = run.isTutorial ? '教学关' : b.name;
+  if (run.isTutorial) {
+    els.blindName.textContent = '教学关';
+    els.blindTarget.textContent = run.tutorialTarget;
+    els.blindReward.textContent = 3;
+    return;
+  }
+  const meta = BLIND_META[run.blindKey || 'small'];
+  const bossLabel = run.boss ? ` · ${run.boss.nameZh}` : '';
+  els.blindName.textContent = `${meta.name}${bossLabel}`;
   els.blindTarget.textContent = requirementForRun();
-  els.blindReward.textContent = b.reward;
+  els.blindReward.textContent = run.blindKey === 'boss' && run.ante >= 8 ? 8 : meta.reward;
 }
 
 const MOBILE_PREVIEW = window.matchMedia('(max-width: 768px)');
@@ -279,7 +362,10 @@ function renderHandPreview() {
 
 function renderHandLevels() {
   els.handLevelsList.innerHTML = '';
-  for (const t of HAND_TYPES) {
+  const visible = HAND_TYPES.filter(t =>
+    !SECRET_HANDS.has(t) || run.discoveredHands.has(t)
+  );
+  for (const t of visible) {
     const lvl = run.levels[t];
     const { chips, mult } = chipsAndMultFor(t, run.levels);
     const row = document.createElement('div');
@@ -311,6 +397,7 @@ function spawnPopup(text, kind, anchor) {
 function toggleSelect(card) {
   if (run.phase !== 'playing') return;
   if (tutorialController?.active && !tutorialController.canSelectCard(card)) return;
+  if (run.forcedSelectId && card.id === run.forcedSelectId) return;
   if (run.selected.has(card.id)) {
     run.selected.delete(card.id);
   } else {
@@ -326,16 +413,36 @@ function toggleSelect(card) {
 }
 
 // ---------- Round flow ----------
-function startBlind() {
+function startBlind(blindKey) {
+  run.blindKey = blindKey;
+  if (blindKey === 'boss' && !run.isTutorial) {
+    run.boss = rollBossBlind(run);
+  } else if (blindKey !== 'boss') {
+    run.boss = null;
+  }
+
   run.phase = 'playing';
-  run.handsLeft = STARTING_HANDS;
-  run.discardsLeft = STARTING_DISCARDS;
+  run.handsLeft = getRoundHands(run);
+  run.discardsLeft = getRoundDiscards(run);
+  run.bonusHandsNextBlind = 0;
+  run.bonusDiscardsNextBlind = 0;
   run.roundScore = 0;
   run.selected.clear();
-  // Recreate shuffled draw pile from master deck
+  run.forcedSelectId = null;
+
+  clearBossCardDebuffs(run);
+  applyBossRoundStart(run);
+
   run.drawPile = shuffle([...run.deck]);
+  run.discardPile = [];
   run.hand = [];
   drawToFull();
+
+  if (run.boss?.id === 'cerulean_bell' && run.hand.length) {
+    const c = run.hand[Math.floor(Math.random() * run.hand.length)];
+    run.forcedSelectId = c.id;
+    run.selected.add(c.id);
+  }
   els.lastHand.querySelector('.last-hand-name').textContent = '—';
   els.lastHand.querySelector('.chips-pill').textContent = '0';
   els.lastHand.querySelector('.mult-pill').textContent = '0';
@@ -343,7 +450,13 @@ function startBlind() {
 }
 
 function drawToFull() {
-  while (run.hand.length < HAND_SIZE && run.drawPile.length > 0) {
+  const target = run.isTutorial ? HAND_SIZE : getRoundHandSize(run);
+  while (run.hand.length < target) {
+    if (run.drawPile.length === 0) {
+      if (run.discardPile.length === 0) break;
+      run.drawPile = shuffle(run.discardPile);
+      run.discardPile = [];
+    }
     const c = run.drawPile.pop();
     c._justDealt = true;
     run.hand.push(c);
@@ -367,6 +480,14 @@ async function playSelected() {
   if (run.selected.size === 0 || run.phase !== 'playing') return;
   if (tutorialController?.active && !tutorialController.canPlay()) return;
   const playedCards = run.hand.filter(c => run.selected.has(c.id));
+  const preType = evaluateHand(playedCards).type;
+  if (!run.isTutorial) {
+    const bossCheck = validateBossPlay(run, playedCards, preType);
+    if (!bossCheck.ok) {
+      showToast(bossCheck.reason);
+      return;
+    }
+  }
 
   // 1) move played cards from hand → played row
   for (const c of playedCards) {
@@ -438,6 +559,13 @@ async function playSelected() {
       await sleep(280);
       continue;
     }
+    if (ev.kind === 'boss') {
+      chipsPill.textContent = ev.snapshot.chips;
+      multPill.textContent = ev.snapshot.mult;
+      spawnPopup(ev.label, 'mult', preview);
+      await sleep(280);
+      continue;
+    }
     if (ev.kind === 'final') {
       // big score bump
       run.roundScore += ev.score;
@@ -452,6 +580,12 @@ async function playSelected() {
   for (const [, el] of cardEls) el.classList.add('flying-out');
   await sleep(360);
   els.playedRow.innerHTML = '';
+  run.discardPile.push(...playedCards);
+  if (!run.isTutorial && (run.blindKey === 'small' || run.blindKey === 'big')) {
+    for (const c of playedCards) run.pillarPlayedIds.add(c.id);
+  }
+  markHandDiscovered(run, result.hand.type);
+  if (!run.isTutorial) afterBossHandPlayed(run, playedCards, result.hand.type);
 
   // Persist "last hand" stats
   const lastChips = chipsPill.textContent;
@@ -488,6 +622,7 @@ function discardSelected() {
   for (const c of cards) {
     const idx = run.hand.indexOf(c);
     if (idx >= 0) run.hand.splice(idx, 1);
+    run.discardPile.push(c);
   }
   run.selected.clear();
   run.discardsLeft -= 1;
@@ -497,38 +632,74 @@ function discardSelected() {
 }
 
 function winBlind() {
-  // Reward: blind reward + $1 per remaining hand + interest (capped at $5)
-  const b = BLIND_TYPES[run.blindIndex];
+  const meta = BLIND_META[run.blindKey];
+  const blindReward = run.blindKey === 'boss' && run.ante >= 8 ? 8 : meta.reward;
   const handBonus = run.handsLeft;
   const interest = Math.min(5, Math.floor(run.money / 5));
-  const total = b.reward + handBonus + interest;
-  run.money += total;
-  run.blindBeaten[run.blindIndex] = true;
+  run.anteProgress[run.blindKey] = 'beaten';
+  run.cashOutSummary = { blindReward, handBonus, interest, tagNote: run.lastTagDetail || '' };
+  run.lastTagDetail = null;
+  openCashOut();
+}
 
-  // Open shop with summary popups
-  openShop({ blindReward: b.reward, handBonus, interest });
+function openCashOut() {
+  run.phase = 'cashOut';
+  const s = run.cashOutSummary;
+  const total = s.blindReward + s.handBonus + s.interest;
+  const meta = BLIND_META[run.blindKey];
+  els.cashOutBody.innerHTML = `
+    <div class="cashout-title">击败 ${meta.name}${run.boss ? ` · ${run.boss.nameZh}` : ''}</div>
+    <div class="cashout-lines">
+      <div>盲注奖励 <span class="gold">$${s.blindReward}</span></div>
+      <div>剩余手牌 <span class="gold">$${s.handBonus}</span> <span class="muted">($1/次)</span></div>
+      <div>利息 <span class="gold">$${s.interest}</span> <span class="muted">(每 $5 → $1，上限 $5)</span></div>
+    </div>
+    <div class="cashout-total">合计 <span class="gold">$${total}</span></div>
+    ${s.tagNote ? `<div class="cashout-tag">${s.tagNote}</div>` : ''}
+  `;
+  els.cashOutModal.classList.remove('hidden');
+}
+
+function finishCashOut() {
+  const s = run.cashOutSummary;
+  run.money += s.blindReward + s.handBonus + s.interest;
+  els.cashOutModal.classList.add('hidden');
+
+  if (run.blindKey === 'boss') {
+    if (run.ante >= ANTES_TO_WIN) {
+      win();
+      return;
+    }
+    run.ante += 1;
+    run.anteProgress = freshAnteProgress();
+    run.pillarPlayedIds = new Set();
+    run.boss = null;
+    clearBossCardDebuffs(run);
+  }
+  openShop(s);
+}
+
+function shopPrice(base) {
+  return Math.max(1, base - (run.shopDiscount || 0));
 }
 
 function openShop(summary) {
   run.phase = 'shop';
+  run.cashOutSummary = summary;
+  const planets = rollShopPlanets(2, run.discoveredHands);
+  if (run.freePlanetNextShop && planets.length) {
+    planets.push({ ...planets[0], cost: 0, free: true, name: planets[0].name + ' (赠)' });
+    run.freePlanetNextShop = false;
+  }
   run.shop = {
     jokers: rollShopJokers(2, new Set(run.jokers.map(j => j.id))),
-    boosters: rollBoosters(2),
+    planets,
     sold: new Set()
   };
   run.rerollCost = 5;
+  run.shopDiscount = 0;
   renderShop(summary);
   els.shopModal.classList.remove('hidden');
-}
-
-function rollBoosters(n) {
-  // simple "boosters" — these immediately level up a hand type
-  const options = HAND_TYPES.map(t => ({ kind: 'level', handType: t, cost: 6, art: '📜', name: `${HAND_LABELS[t]} 升级券` }));
-  const out = [];
-  for (let i = 0; i < n; i++) {
-    out.push(options[Math.floor(Math.random() * options.length)]);
-  }
-  return out;
 }
 
 function renderShop(summary) {
@@ -554,32 +725,34 @@ function renderShop(summary) {
   run.shop.jokers.forEach((j, i) => {
     const wrap = document.createElement('div');
     wrap.className = 'shop-item' + (run.shop.sold.has(`j${i}`) ? ' sold' : '');
-    const card = jokerEl(j);
+    const card = jokerEl(j, -1);
     wrap.appendChild(card);
     const price = document.createElement('button');
     price.className = 'price';
-    price.textContent = `$${j.cost}`;
+    const cost = shopPrice(j.cost);
+    price.textContent = cost === 0 ? '免费' : `$${cost}`;
     price.onclick = () => buyJoker(i);
     wrap.appendChild(price);
     els.shopGrid.appendChild(wrap);
   });
 
-  run.shop.boosters.forEach((b, i) => {
+  run.shop.planets.forEach((p, i) => {
     const wrap = document.createElement('div');
-    wrap.className = 'shop-item' + (run.shop.sold.has(`b${i}`) ? ' sold' : '');
+    wrap.className = 'shop-item' + (run.shop.sold.has(`p${i}`) ? ' sold' : '');
     const card = document.createElement('div');
-    card.className = 'joker';
+    card.className = 'joker planet-card';
     card.style.borderColor = 'var(--blue)';
-    card.dataset.tip = `${b.name}\n升级一次 ${HAND_LABELS[b.handType]}\n该牌型基础筹码与倍数提升`;
+    card.dataset.tip = `${planetLabel(p)}\n${p.desc || '牌型等级 +1'}`;
     card.innerHTML = `
-      <div class="joker-art" style="color:var(--blue);">${b.art}</div>
-      <div class="joker-name" style="color:var(--blue);">${b.name}</div>
+      <div class="joker-art" style="color:var(--blue);">${p.art}</div>
+      <div class="joker-name" style="color:var(--blue);">${p.name}</div>
     `;
     wrap.appendChild(card);
     const price = document.createElement('button');
     price.className = 'price';
-    price.textContent = `$${b.cost}`;
-    price.onclick = () => buyBooster(i);
+    const cost = p.free ? 0 : shopPrice(p.cost);
+    price.textContent = cost === 0 ? '免费' : `$${cost}`;
+    price.onclick = () => buyPlanet(i);
     wrap.appendChild(price);
     els.shopGrid.appendChild(wrap);
   });
@@ -588,22 +761,27 @@ function renderShop(summary) {
 function buyJoker(i) {
   const j = run.shop.jokers[i];
   if (!j || run.shop.sold.has(`j${i}`)) return;
-  if (run.money < j.cost) return;
+  const cost = shopPrice(j.cost);
+  if (run.money < cost) return;
   if (run.jokers.length >= JOKER_SLOTS) return;
-  run.money -= j.cost;
+  run.money -= cost;
   run.jokers.push(j);
   run.shop.sold.add(`j${i}`);
-  renderShop();
+  renderShop(run.cashOutSummary);
+  renderJokers();
+  renderStats();
 }
 
-function buyBooster(i) {
-  const b = run.shop.boosters[i];
-  if (!b || run.shop.sold.has(`b${i}`)) return;
-  if (run.money < b.cost) return;
-  run.money -= b.cost;
-  run.levels[b.handType] = (run.levels[b.handType] || 1) + 1;
-  run.shop.sold.add(`b${i}`);
-  renderShop();
+function buyPlanet(i) {
+  const p = run.shop.planets[i];
+  if (!p || run.shop.sold.has(`p${i}`)) return;
+  const cost = p.free ? 0 : shopPrice(p.cost);
+  if (run.money < cost) return;
+  run.money -= cost;
+  const key = p.handType === 'Royal Flush' ? 'Straight Flush' : p.handType;
+  run.levels[key] = (run.levels[key] || 1) + 1;
+  run.shop.sold.add(`p${i}`);
+  renderShop(run.cashOutSummary);
   renderHandLevels();
 }
 
@@ -612,9 +790,9 @@ function reroll() {
   run.money -= run.rerollCost;
   run.rerollCost += 1;
   run.shop.jokers = rollShopJokers(2, new Set(run.jokers.map(j => j.id)));
-  run.shop.boosters = rollBoosters(2);
+  run.shop.planets = rollShopPlanets(2, run.discoveredHands);
   run.shop.sold = new Set();
-  renderShop();
+  renderShop(run.cashOutSummary);
 }
 
 function nextRound() {
@@ -623,18 +801,21 @@ function nextRound() {
     tutorialController.onShopFinished();
     return;
   }
-  // advance blind
-  run.blindIndex += 1;
-  if (run.blindIndex > 2) {
-    run.blindIndex = 0;
-    run.blindBeaten = [false, false, false];
-    run.ante += 1;
-    if (run.ante > ANTES_TO_WIN) {
-      win();
-      return;
-    }
-  }
   showBlindSelect();
+}
+
+function skipBlind(key) {
+  const tag = rollSkipTag();
+  tag.apply(run);
+  run.anteProgress[key] = 'skipped';
+  run.lastTagDetail = `${tag.name}：${tag.desc}`;
+  showBlindSelect();
+  showToast(`跳过盲注 · ${tag.name}`);
+}
+
+function beginBlind(key) {
+  els.blindSelectModal.classList.add('hidden');
+  startBlind(key);
 }
 
 function showBlindSelect() {
@@ -644,40 +825,56 @@ function showBlindSelect() {
     return;
   }
   run.phase = 'blindSelect';
-  const b = BLIND_TYPES[run.blindIndex];
-  const target = requirementFor(run.ante, run.blindIndex);
   els.blindOptions.innerHTML = '';
-  const opt = document.createElement('div');
-  opt.className = 'blind-option' + (b.key === 'boss' ? ' boss' : '');
-  opt.innerHTML = `
-    <div class="blind-emoji">${b.emoji}</div>
-    <h3>${b.name}</h3>
-    <div class="blind-info">
-      关卡 ${run.ante} / ${ANTES_TO_WIN}<br/>
-      目标得分 <b style="color:var(--gold)">${target}</b><br/>
-      奖励 <b style="color:var(--gold)">$${b.reward}</b>
-    </div>
-    <button class="btn btn-play">
-      <span class="btn-main">开始</span>
-      <span class="btn-sub">Start Round</span>
-    </button>
-  `;
-  opt.querySelector('button').onclick = () => {
-    els.blindSelectModal.classList.add('hidden');
-    startBlind();
-  };
-  els.blindOptions.appendChild(opt);
+
+  for (const key of ['small', 'big', 'boss']) {
+    const status = run.anteProgress[key];
+    if (status === 'beaten' || status === 'skipped') continue;
+
+    const meta = BLIND_META[key];
+    const previewBoss = key === 'boss' ? run.boss : null;
+    const target = requirementForBlind(run.ante, key, previewBoss);
+    const reward = key === 'boss' && run.ante >= 8 ? 8 : meta.reward;
+
+    const opt = document.createElement('div');
+    opt.className = 'blind-option' + (key === 'boss' ? ' boss' : '');
+    const bossLine = key === 'boss'
+      ? `<div class="blind-boss-hint">${previewBoss ? previewBoss.nameZh + ' — ' + previewBoss.desc : '随机 Boss 盲注（含特殊规则）'}</div>`
+      : '';
+    opt.innerHTML = `
+      <div class="blind-emoji">${meta.emoji}</div>
+      <h3>${meta.name}</h3>
+      <div class="blind-info">
+        关卡 ${run.ante} / ${ANTES_TO_WIN}<br/>
+        目标 <b style="color:var(--gold)">${target}</b><br/>
+        奖励 <b style="color:var(--gold)">$${reward}</b>
+      </div>
+      ${bossLine}
+      <div class="blind-actions">
+        ${key !== 'boss' ? '<button type="button" class="btn btn-sort blind-skip"><span class="btn-main">跳过</span><span class="btn-sub">Tag</span></button>' : ''}
+        <button type="button" class="btn btn-play blind-start">
+          <span class="btn-main">挑战</span>
+          <span class="btn-sub">Play</span>
+        </button>
+      </div>
+    `;
+    if (key !== 'boss') opt.querySelector('.blind-skip').onclick = () => skipBlind(key);
+    opt.querySelector('.blind-start').onclick = () => beginBlind(key);
+    els.blindOptions.appendChild(opt);
+  }
+
   els.blindSelectModal.classList.remove('hidden');
   renderAll();
 }
 
 function gameOver() {
   run.phase = 'gameover';
+  const meta = BLIND_META[run.blindKey || 'small'];
   els.endTitle.textContent = '游戏结束';
   els.endText.innerHTML = `
-    你倒在了第 <b>${run.ante}</b> 关 · <b>${BLIND_TYPES[run.blindIndex].name}</b><br/>
+    你倒在了第 <b>${run.ante}</b> 关 · <b>${meta.name}</b>${run.boss ? ` (${run.boss.nameZh})` : ''}<br/>
     本轮得分 <b style="color:var(--gold)">${run.roundScore}</b> /
-    目标 <b>${requirementFor(run.ante, run.blindIndex)}</b>
+    目标 <b>${requirementForRun()}</b>
   `;
   els.endModal.classList.remove('hidden');
 }
@@ -699,22 +896,40 @@ function restart() {
 }
 
 // ---------- Init ----------
-function initRun() {
+function resetRunState(tutorial = false) {
   run.deck = createDeck();
   run.drawPile = [];
+  run.discardPile = [];
   run.hand = [];
   run.selected = new Set();
   run.jokers = [];
-  run.money = 4;
+  run.money = tutorial ? 8 : 4;
   run.ante = 1;
-  run.blindIndex = 0;
-  run.blindBeaten = [false, false, false];
+  run.blindKey = null;
+  run.anteProgress = freshAnteProgress();
+  run.boss = null;
+  run.seenBosses = new Set();
+  run.pillarPlayedIds = new Set();
+  run.discoveredHands = new Set([
+    'High Card', 'Pair', 'Two Pair', 'Three of a Kind', 'Straight',
+    'Flush', 'Full House', 'Four of a Kind', 'Straight Flush'
+  ]);
   run.handsLeft = STARTING_HANDS;
   run.discardsLeft = STARTING_DISCARDS;
   run.roundScore = 0;
   run.levels = defaultHandLevels();
-  run.isTutorial = false;
-  run.tutorialStep = null;
+  run.isTutorial = tutorial;
+  run.tutorialTarget = 40;
+  run.bonusHandsNextBlind = 0;
+  run.bonusDiscardsNextBlind = 0;
+  run.shopDiscount = 0;
+  run.freePlanetNextShop = false;
+  run.forcedSelectId = null;
+  clearBossCardDebuffs(run);
+}
+
+function initRun() {
+  resetRunState(false);
   run.phase = 'blindSelect';
   renderHandLevels();
   showBlindSelect();
@@ -722,21 +937,7 @@ function initRun() {
 }
 
 function initTutorialRun() {
-  run.deck = createDeck();
-  run.drawPile = [];
-  run.hand = [];
-  run.selected = new Set();
-  run.jokers = [];
-  run.money = 8;
-  run.ante = 1;
-  run.blindIndex = 0;
-  run.blindBeaten = [false, false, false];
-  run.handsLeft = STARTING_HANDS;
-  run.discardsLeft = STARTING_DISCARDS;
-  run.roundScore = 0;
-  run.levels = defaultHandLevels();
-  run.isTutorial = true;
-  run.tutorialTarget = 40;
+  resetRunState(true);
   run.phase = 'blindSelect';
   renderHandLevels();
   els.blindSelectModal.classList.add('hidden');
@@ -753,6 +954,7 @@ function startNormalRun() {
 
 function closeAllModals() {
   els.handLevelsModal.classList.add('hidden');
+  els.cashOutModal.classList.add('hidden');
   els.shopModal.classList.add('hidden');
   els.blindSelectModal.classList.add('hidden');
   els.endModal.classList.add('hidden');
@@ -789,6 +991,7 @@ els.sortSuitBtn.addEventListener('click', sortHandBySuit);
 els.runInfoBtn.addEventListener('click', () => els.handLevelsModal.classList.remove('hidden'));
 els.rerollBtn.addEventListener('click', reroll);
 els.nextRoundBtn.addEventListener('click', nextRound);
+els.cashOutContinueBtn?.addEventListener('click', finishCashOut);
 els.restartBtn.addEventListener('click', restart);
 
 document.querySelectorAll('[data-close]').forEach(b => {

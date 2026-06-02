@@ -136,8 +136,9 @@
         <ul class="tips">
           <li>每出一手牌 = <b>筹码 × 倍数</b></li>
           <li>组成 <b>对子 / 同花 / 顺子</b> 等可大幅加成</li>
-          <li>击败 <b>盲注</b> 获得金币，到商店购买小丑</li>
-          <li>小丑会改变计分规则，搭配出 combo</li>
+          <li>小/大盲可 <b>跳过</b> 换 Tag；Boss 带特殊规则</li>
+          <li>击败盲注 → <b>结算</b> → 商店买小丑与 <b>星球牌</b></li>
+          <li>小丑可 <b>拖拽排序</b>、右键出售；Blueprint 复制右侧</li>
         </ul>
       </div>
     </aside>
@@ -150,6 +151,22 @@
           <button class="close-x" data-close>✕</button>
         </header>
         <div class="hand-levels" id="handLevelsList"></div>
+      </div>
+    </div>
+
+    <!-- Modal: cash out (Balatro-style payout before shop) -->
+    <div class="modal hidden" id="cashOutModal">
+      <div class="modal-card cashout-card">
+        <header class="modal-header">
+          <h2>结算</h2>
+        </header>
+        <div id="cashOutBody" class="cashout-body"></div>
+        <footer class="shop-footer">
+          <button type="button" class="btn btn-play" id="cashOutContinueBtn">
+            <span class="btn-main">进入商店</span>
+            <span class="btn-sub">Continue</span>
+          </button>
+        </footer>
       </div>
     </div>
 

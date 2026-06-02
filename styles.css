@@ -781,6 +781,78 @@ body {
   font-size: 18px;
   letter-spacing: 0.06em;
 }
+.blind-option .blind-actions {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  margin-top: 4px;
+}
+.blind-option .blind-actions .btn {
+  flex: 1;
+  min-height: 44px;
+}
+.blind-option .blind-boss-hint {
+  font-size: 11px;
+  color: var(--ink-dim);
+  text-align: center;
+  line-height: 1.4;
+  max-height: 3.2em;
+  overflow: hidden;
+}
+.cashout-card { min-width: 360px; }
+.cashout-body { padding: 8px 4px 16px; }
+.cashout-title {
+  font-family: var(--serif);
+  font-size: 20px;
+  font-weight: 900;
+  color: var(--gold);
+  text-align: center;
+  margin-bottom: 14px;
+}
+.cashout-lines {
+  font-family: var(--mono);
+  font-size: 14px;
+  line-height: 2;
+  color: var(--ink);
+}
+.cashout-lines .muted { opacity: 0.55; font-size: 11px; }
+.cashout-total {
+  margin-top: 12px;
+  text-align: center;
+  font-size: 22px;
+  font-weight: 800;
+}
+.cashout-tag {
+  margin-top: 10px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--blue);
+}
+.joker.joker-disabled {
+  opacity: 0.35;
+  filter: grayscale(0.8);
+}
+.joker.joker-dragging { opacity: 0.5; }
+.game-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 18%;
+  transform: translateX(-50%);
+  background: rgba(20, 8, 28, 0.92);
+  border: 1px solid var(--gold-deep);
+  color: var(--ink);
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-size: 14px;
+  z-index: 300;
+  animation: toastIn 2.2s ease forwards;
+}
+@keyframes toastIn {
+  0% { opacity: 0; transform: translate(-50%, 12px); }
+  12% { opacity: 1; transform: translate(-50%, 0); }
+  80% { opacity: 1; }
+  100% { opacity: 0; }
+}
 .blind-option .blind-info {
   font-family: var(--mono);
   font-size: 13px;

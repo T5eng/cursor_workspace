@@ -130,7 +130,7 @@ export const JOKER_DEFS = [
     desc: '出牌包含顺子时\n+12 倍数',
     hooks: {
       onHandPlayed(hand, ctx) {
-        if (['Straight','Straight Flush'].includes(hand.type)) ctx.addMult(12, this);
+        if (['Straight','Straight Flush','Royal Flush'].includes(hand.type)) ctx.addMult(12, this);
       }
     }
   },
@@ -143,7 +143,7 @@ export const JOKER_DEFS = [
     desc: '出牌包含同花时\n+10 倍数',
     hooks: {
       onHandPlayed(hand, ctx) {
-        if (['Flush','Straight Flush'].includes(hand.type)) ctx.addMult(10, this);
+        if (['Flush','Straight Flush','Royal Flush'].includes(hand.type)) ctx.addMult(10, this);
       }
     }
   },
