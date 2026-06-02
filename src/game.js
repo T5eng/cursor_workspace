@@ -250,11 +250,16 @@ function renderBlind() {
   els.blindReward.textContent = b.reward;
 }
 
+const MOBILE_PREVIEW = window.matchMedia('(max-width: 768px)');
+function handPreviewHint() {
+  return MOBILE_PREVIEW.matches ? '点选手牌组牌型' : '选择牌组成牌型';
+}
+
 function renderHandPreview() {
   const cards = run.hand.filter(c => run.selected.has(c.id));
   if (cards.length === 0) {
     els.handPreview.classList.remove('active');
-    els.handPreview.querySelector('.hand-preview-name').textContent = '选择牌组成牌型';
+    els.handPreview.querySelector('.hand-preview-name').textContent = handPreviewHint();
     els.handPreview.querySelector('.chips-pill').textContent = '0';
     els.handPreview.querySelector('.mult-pill').textContent = '0';
     els.playBtn.disabled = true;
