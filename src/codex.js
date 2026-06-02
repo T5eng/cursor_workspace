@@ -50,7 +50,7 @@ function loadStore() {
 let store = loadStore();
 
 function save() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+  storage()?.setItem(STORAGE_KEY, JSON.stringify(store));
 }
 
 function add(setKey, category, id) {
