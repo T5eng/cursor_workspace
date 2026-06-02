@@ -58,6 +58,8 @@ const STEPS = /** @type {TutorialStep[]} */ ([
     id: 'select-pair',
     kind: 'action',
     action: 'select-pair',
+    target: '#handRow',
+    targets: ['#handPreview', '#handRow'],
     title: '④ 组成对子',
     body: '请点击手牌，选中<strong>两张 A</strong>（任意花色）。上方预览应显示「对子」。',
     onEnter(api) {
@@ -74,6 +76,7 @@ const STEPS = /** @type {TutorialStep[]} */ ([
     kind: 'action',
     action: 'play-hand',
     target: '#playBtn',
+    targets: ['#handPreview', '#playBtn'],
     title: '⑤ 出牌计分',
     body: '牌型确认后，点击<strong>出牌</strong>（或按 Space / Enter）。留意逐张高亮与浮动数字：蓝色 +筹码、红色 +倍数。'
   },
@@ -88,7 +91,8 @@ const STEPS = /** @type {TutorialStep[]} */ ([
     id: 'discard',
     kind: 'action',
     action: 'discard',
-    target: '#discardBtn',
+    target: '.play-area',
+    targets: ['#handRow', '#discardBtn', '#handPreview'],
     title: '⑥ 弃牌换牌',
     body: '手牌不顺时，选中 1–5 张后点<strong>弃牌</strong>（Backspace / D），会从牌堆补牌。请弃掉两张<strong>最差的牌</strong>（2 和 3）。',
     onEnter(api) {
@@ -110,7 +114,8 @@ const STEPS = /** @type {TutorialStep[]} */ ([
     id: 'joker-play',
     kind: 'action',
     action: 'play-with-joker',
-    target: '#jokerRow',
+    target: '#handRow',
+    targets: ['#jokerRow', '#handPreview', '#handRow'],
     title: '⑧ 感受小丑加成',
     body: '请再出一手<strong>对子</strong>（任选两张相同点数）。留意顶部小丑闪光与「+4 倍数」弹出。',
     onEnter(api) {
@@ -152,7 +157,13 @@ export class TutorialController {
     this.stepIndex = 0;
     this.active = false;
     this.overlay = null;
-    this._onResize = () => this.updateSpotlight();
+    this._spotlightRect = null;
+    this._onResize = () => {
+      const step = this.step;
+      const sel = step?.targets || step?.target;
+      if (sel) this.updateSpotlight(sel);
+      else this.positionPanel();
+    };
   }
 
   static hasCompleted() {
@@ -292,13 +303,16 @@ export class TutorialController {
     this.overlay.classList.remove('hidden');
     document.body.classList.add('tutorial-active');
 
-    if (step.kind === 'highlight' || (step.kind === 'action' && step.target)) {
+    const spotlightSel = step.targets || step.target;
+    if (step.kind === 'highlight' || (step.kind === 'action' && spotlightSel)) {
       this.overlay.classList.add('has-spotlight');
-      this.updateSpotlight(step.target);
+      this.updateSpotlight(spotlightSel);
     } else {
       this.overlay.classList.remove('has-spotlight');
       this.hideSpotlight();
     }
+
+    this.positionPanel();
 
     if (step.kind === 'shop') {
       this.api.openTutorialShop();
@@ -311,29 +325,82 @@ export class TutorialController {
 
   updateSpotlight(selector) {
     const step = this.step;
-    const sel = selector || step?.target;
+    const sel = selector || step?.targets || step?.target;
     const spot = this.overlay?.querySelector('.tutorial-spotlight');
     if (!spot || !sel) {
       this.hideSpotlight();
       return;
     }
-    const el = document.querySelector(sel);
-    if (!el) {
+    const list = Array.isArray(sel) ? sel : [sel];
+    const rects = list
+      .map(s => document.querySelector(s))
+      .filter(Boolean)
+      .map(el => el.getBoundingClientRect());
+    if (rects.length === 0) {
       this.hideSpotlight();
       return;
     }
-    const r = el.getBoundingClientRect();
-    const pad = 10;
+    const pad = 8;
+    const union = rects.reduce((u, r) => ({
+      left: Math.min(u.left, r.left),
+      top: Math.min(u.top, r.top),
+      right: Math.max(u.right, r.right),
+      bottom: Math.max(u.bottom, r.bottom)
+    }), {
+      left: rects[0].left,
+      top: rects[0].top,
+      right: rects[0].right,
+      bottom: rects[0].bottom
+    });
     spot.style.display = 'block';
-    spot.style.left = `${r.left - pad}px`;
-    spot.style.top = `${r.top - pad}px`;
-    spot.style.width = `${r.width + pad * 2}px`;
-    spot.style.height = `${r.height + pad * 2}px`;
+    spot.style.left = `${union.left - pad}px`;
+    spot.style.top = `${union.top - pad}px`;
+    spot.style.width = `${union.right - union.left + pad * 2}px`;
+    spot.style.height = `${union.bottom - union.top + pad * 2}px`;
+    this._spotlightRect = union;
+    this.positionPanel();
+  }
+
+  /** Place tutorial card away from the interactive target */
+  positionPanel() {
+    const panel = this.overlay?.querySelector('.tutorial-panel');
+    if (!panel) return;
+
+    const step = this.step;
+    const vh = window.visualViewport?.height ?? window.innerHeight;
+    const isMobile = window.matchMedia('(max-width: 768px)').matches;
+
+    panel.classList.remove('tutorial-panel-top', 'tutorial-panel-bottom');
+
+    // Dialogs: bottom on desktop, top on mobile to leave table visible
+    if (step?.kind === 'dialog') {
+      panel.classList.add(isMobile ? 'tutorial-panel-top' : 'tutorial-panel-bottom');
+      return;
+    }
+
+    let focusBottom = vh * 0.5;
+    if (this._spotlightRect) {
+      focusBottom = this._spotlightRect.top + (this._spotlightRect.bottom - this._spotlightRect.top) / 2;
+    } else if (step?.target) {
+      const el = document.querySelector(step.target);
+      if (el) {
+        const r = el.getBoundingClientRect();
+        focusBottom = r.top + r.height / 2;
+      }
+    }
+
+    // Interactive targets in lower half → panel on top
+    const useTop = isMobile
+      ? focusBottom > vh * 0.38
+      : focusBottom > vh * 0.55;
+
+    panel.classList.add(useTop ? 'tutorial-panel-top' : 'tutorial-panel-bottom');
   }
 
   hideSpotlight() {
     const spot = this.overlay?.querySelector('.tutorial-spotlight');
     if (spot) spot.style.display = 'none';
+    this._spotlightRect = null;
   }
 
   /** Called from game loop when player acts */

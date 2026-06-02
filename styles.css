@@ -1186,11 +1186,19 @@ body {
   }
 
   .tutorial-panel {
-    bottom: max(12px, env(safe-area-inset-bottom));
-    width: calc(100vw - 20px);
-    padding: 14px 16px 12px;
+    width: calc(100vw - 16px);
+    max-height: 38vh;
+    padding: 10px 12px 10px;
   }
-  .tutorial-title { font-size: 18px; }
+  .tutorial-panel-bottom {
+    bottom: max(6px, env(safe-area-inset-bottom));
+  }
+  .tutorial-panel-top {
+    top: max(6px, env(safe-area-inset-top));
+  }
+  .tutorial-title { font-size: 16px; margin-bottom: 4px; }
+  .tutorial-body { font-size: 13px; margin-bottom: 8px; line-height: 1.5; }
+  .tutorial-progress { margin-bottom: 4px; }
   .tutorial-footer {
     flex-wrap: wrap;
   }
@@ -1324,9 +1332,10 @@ body.tutorial-active #app {
 .tutorial-panel {
   position: fixed;
   left: 50%;
-  bottom: 28px;
-  transform: translateX(-50%);
   width: min(520px, calc(100vw - 32px));
+  max-height: min(42vh, 320px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(0, 0, 0, 0.25)),
     linear-gradient(180deg, #2a1531, #1a0820);
@@ -1336,10 +1345,28 @@ body.tutorial-active #app {
   box-shadow: var(--shadow-deep);
   pointer-events: auto;
   z-index: 152;
+}
+
+.tutorial-panel-bottom {
+  bottom: max(28px, env(safe-area-inset-bottom));
+  top: auto;
+  transform: translateX(-50%);
   animation: tutorialSlideUp 280ms ease;
 }
+
+.tutorial-panel-top {
+  top: max(10px, env(safe-area-inset-top));
+  bottom: auto;
+  transform: translateX(-50%);
+  animation: tutorialSlideDown 280ms ease;
+}
+
 @keyframes tutorialSlideUp {
   from { opacity: 0; transform: translateX(-50%) translateY(16px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+@keyframes tutorialSlideDown {
+  from { opacity: 0; transform: translateX(-50%) translateY(-12px); }
   to   { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
