@@ -191,6 +191,9 @@ export class TutorialController {
     this.api.run.isTutorial = false;
     this.api.run.tutorialStep = null;
     window.removeEventListener('resize', this._onResize);
+    window.removeEventListener('orientationchange', this._onResize);
+    window.visualViewport?.removeEventListener('resize', this._onResize);
+    window.visualViewport?.removeEventListener('scroll', this._onResize);
     if (this.overlay) {
       this.overlay.remove();
       this.overlay = null;
@@ -225,6 +228,9 @@ export class TutorialController {
     root.querySelector('#tutorialSkip').addEventListener('click', () => this.exitToGame());
     root.querySelector('#tutorialNext').addEventListener('click', () => this.onNextClick());
     window.addEventListener('resize', this._onResize);
+    window.addEventListener('orientationchange', this._onResize);
+    window.visualViewport?.addEventListener('resize', this._onResize);
+    window.visualViewport?.addEventListener('scroll', this._onResize);
   }
 
   get step() {

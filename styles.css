@@ -51,6 +51,8 @@ html, body {
   overflow: hidden;
   user-select: none;
   -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 body {
@@ -456,6 +458,9 @@ body {
   text-align: center;
   margin-top: 8px;
   letter-spacing: 0.06em;
+}
+.deck-count .mobile-hint {
+  display: none;
 }
 
 /* ---------- Playing Cards ---------- */
@@ -879,6 +884,266 @@ body {
 @media (max-width: 1024px) {
   #app { grid-template-columns: 200px 1fr; }
   .rail-right { display: none; }
+}
+
+/* ---------- Mobile / phone ---------- */
+@media (max-width: 768px) {
+  html, body {
+    overflow: hidden;
+    height: 100dvh;
+    height: 100svh;
+  }
+
+  #app {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    height: 100svh;
+    overflow: hidden;
+    padding: 8px;
+    padding-top: max(8px, env(safe-area-inset-top));
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+    padding-left: max(8px, env(safe-area-inset-left));
+    padding-right: max(8px, env(safe-area-inset-right));
+    gap: 8px;
+  }
+
+  .rail-left {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .rail-right { display: none; }
+
+  .blind-panel,
+  .score-panel {
+    padding: 10px;
+  }
+
+  .blind-name { font-size: 18px; margin: 2px 0 6px; }
+  .blind-target { font-size: 15px; padding: 4px 10px; }
+  .round-score { font-size: 32px; }
+
+  .stats-panel {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+  }
+  .stat { padding: 6px 4px; }
+  .stat.wide { grid-column: auto; }
+  .stat-value { font-size: 16px; }
+  .stat-label { font-size: 9px; letter-spacing: 0.08em; }
+
+  #runInfoBtn {
+    grid-column: 1 / -1;
+    padding: 10px;
+    font-size: 12px;
+  }
+
+  .table {
+    flex: 1;
+    min-height: 0;
+    border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  :root {
+    --card-w: 50px;
+    --card-h: 72px;
+    --card-r: 8px;
+    --joker-w: 54px;
+    --joker-h: 76px;
+  }
+
+  .top-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+
+  .brand {
+    flex-wrap: wrap;
+    gap: 6px 8px;
+  }
+  .brand-title { font-size: 18px; }
+  .brand-sub { display: none; }
+  .brand-mark { font-size: 14px; }
+  .brand-tutorial-btn {
+    margin-left: auto;
+    min-height: 36px;
+    padding: 8px 12px;
+  }
+
+  .joker-row {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    flex-shrink: 0;
+    padding: 4px 6px;
+  }
+  .joker-row::-webkit-scrollbar { display: none; }
+
+  .play-area {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    padding: 6px 10px 10px;
+    gap: 4px;
+  }
+
+  .hand-preview {
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+    padding: 8px 14px;
+    margin-top: 4px;
+  }
+  .hand-preview-name { font-size: 17px; }
+
+  .played-row {
+    min-height: calc(var(--card-h) + 16px);
+    margin: 8px 0 4px;
+  }
+
+  .hand-row {
+    flex-wrap: wrap;
+    gap: 5px;
+    padding-top: 14px;
+    min-height: calc(var(--card-h) * 2 + 20px);
+    max-height: none;
+    justify-content: center;
+    align-content: flex-start;
+  }
+
+  .card .corner { font-size: 13px; }
+  .card .pip { font-size: 28px; }
+  .card.selected { transform: translateY(-14px); }
+
+  .actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
+    gap: 8px;
+    margin-top: 8px;
+    padding: 10px 8px 6px;
+    background: linear-gradient(180deg, transparent, rgba(22, 10, 23, 0.92) 18%);
+    border-radius: 12px;
+  }
+
+  .btn-play { grid-column: 1; grid-row: 2; justify-self: stretch; }
+  .btn-discard { grid-column: 2; grid-row: 2; justify-self: stretch; }
+  .sort-buttons {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    justify-content: center;
+  }
+
+  .btn {
+    min-height: 48px;
+    padding: 12px 14px;
+    touch-action: manipulation;
+  }
+  .btn-main { font-size: 16px; }
+
+  .deck-count .mobile-hint { display: inline; }
+
+  .modal {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .modal-card {
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+    max-height: 92dvh;
+    border-radius: 18px 18px 0 0;
+    padding: 18px 16px max(18px, env(safe-area-inset-bottom));
+  }
+
+  .welcome-card {
+    min-width: 0;
+    width: calc(100vw - 24px);
+    max-width: 100%;
+    border-radius: 18px;
+    margin: auto 12px;
+  }
+  .welcome-card h1 { font-size: 34px; }
+
+  .shop-card { min-width: 0; }
+  .shop-grid {
+    grid-template-columns: repeat(2, 1fr);
+    min-height: 160px;
+  }
+  .shop-footer {
+    flex-direction: column;
+  }
+  .shop-footer .btn { width: 100%; }
+
+  .blind-select-card { min-width: 0; }
+  .blind-options {
+    grid-template-columns: 1fr;
+  }
+
+  .end-card { min-width: 0; width: 100%; }
+
+  .hand-level-row {
+    grid-template-columns: 28px 1fr auto auto auto;
+    gap: 6px;
+    font-size: 12px;
+  }
+
+  .tutorial-panel {
+    bottom: max(12px, env(safe-area-inset-bottom));
+    width: calc(100vw - 20px);
+    padding: 14px 16px 12px;
+  }
+  .tutorial-title { font-size: 18px; }
+  .tutorial-footer {
+    flex-wrap: wrap;
+  }
+  .tutorial-next,
+  .tutorial-skip {
+    min-height: 44px;
+  }
+
+  .popup { font-size: 14px; }
+}
+
+@media (max-width: 380px) {
+  :root {
+    --card-w: 44px;
+    --card-h: 64px;
+    --joker-w: 48px;
+    --joker-h: 68px;
+  }
+
+  .stats-panel {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .stat:nth-child(4),
+  .stat:nth-child(5) {
+    grid-column: span 1;
+  }
+}
+
+/* Touch devices: no hover lift (tap only) */
+@media (hover: none) and (pointer: coarse) {
+  .card:hover { transform: none; }
+  .card.selected:hover { transform: translateY(-14px); }
+  .joker:hover { transform: none; }
+  .btn:not(:disabled):hover { transform: none; filter: none; }
+  .ghost-btn:hover { background: transparent; }
+  .blind-option:hover { transform: none; }
 }
 
 /* ---------- Welcome screen ---------- */

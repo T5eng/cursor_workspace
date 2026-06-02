@@ -193,7 +193,10 @@ function cardEl(card, { dealing = false, interactive = true } = {}) {
     </div>
   `;
   if (interactive) {
-    el.addEventListener('click', () => toggleSelect(card));
+    el.addEventListener('click', (e) => {
+      e.preventDefault();
+      toggleSelect(card);
+    });
   }
   if (run.selected.has(card.id)) el.classList.add('selected');
   return el;
