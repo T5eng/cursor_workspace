@@ -971,6 +971,16 @@ body {
   margin-top: 10px;
   width: 100%;
 }
+.welcome-save-hint {
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: var(--ink-dim);
+  line-height: 1.5;
+}
+.welcome-resume {
+  margin-top: 10px;
+  width: 100%;
+}
 .brand-tutorial-btn + .brand-tutorial-btn {
   margin-left: 4px;
 }

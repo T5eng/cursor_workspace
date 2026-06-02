@@ -3,7 +3,7 @@
 // =============================================================
 
 import {
-  Card, createDeck, shuffle, evaluateHand,
+  createDeck, shuffle, evaluateHand,
   HAND_TYPES, HAND_LABELS, chipsAndMultFor, defaultHandLevels,
   markHandDiscovered, SECRET_HANDS
 } from './cards.js';
@@ -20,6 +20,10 @@ import {
   markJokerObtained, markPlanetObtained, markHandObtained, markShopOffer,
   syncDiscoveredHandsToRun, wireCodexUI
 } from './codex.js';
+import {
+  cardToJSON, cardFromJSON, serializeRun, applySerializedRun,
+  saveRun, loadRun, clearSavedRun, formatSaveSummary
+} from './run-save.js';
 
 // ---------- Constants ----------
 const STARTING_HANDS = 4;
@@ -135,6 +139,7 @@ const els = {
   welcomeModal: $('welcomeModal'),
   startGameBtn: $('startGameBtn'),
   startTutorialBtn: $('startTutorialBtn'),
+  resumeRunBtn: $('resumeRunBtn'),
   resumeTutorialBtn: $('resumeTutorialBtn'),
   openTutorialBtn: $('openTutorialBtn'),
   openCodexBtn: $('openCodexBtn'),
@@ -151,47 +156,24 @@ const els = {
 };
 
 let tutorialController = null;
-/** @type {object|null} Saved run when entering tutorial mid-game */
+/** @type {object|null} In-memory snapshot when entering tutorial mid-game */
 let runSnapshot = null;
+let persistTimer = null;
 
-function cardToJSON(c) {
-  return { rank: c.rank, suit: c.suit, id: c.id };
+function persistRun() {
+  if (run.isTutorial) return;
+  clearTimeout(persistTimer);
+  persistTimer = setTimeout(() => saveRun(run), 400);
 }
 
-function cardFromJSON(o) {
-  const c = new Card(o.rank, o.suit);
-  c.id = o.id;
-  return c;
+function persistRunNow() {
+  if (run.isTutorial) return;
+  clearTimeout(persistTimer);
+  saveRun(run);
 }
 
 function saveRunSnapshot() {
-  runSnapshot = {
-    deck: run.deck.map(cardToJSON),
-    drawPile: run.drawPile.map(cardToJSON),
-    discardPile: run.discardPile.map(cardToJSON),
-    hand: run.hand.map(cardToJSON),
-    selected: [...run.selected],
-    jokers: run.jokers.map(j => j.id),
-    money: run.money,
-    ante: run.ante,
-    blindKey: run.blindKey,
-    anteProgress: { ...run.anteProgress },
-    boss: run.boss ? { ...run.boss } : null,
-    handsLeft: run.handsLeft,
-    discardsLeft: run.discardsLeft,
-    roundScore: run.roundScore,
-    levels: { ...run.levels },
-    rerollCost: run.rerollCost,
-    shopDiscount: run.shopDiscount,
-    freePlanetNextShop: run.freePlanetNextShop,
-    cashOutSummary: run.cashOutSummary,
-    shop: run.shop ? {
-      jokers: run.shop.jokers.map(j => j.id),
-      planets: run.shop.planets.map(p => ({ ...p })),
-      sold: [...run.shop.sold]
-    } : null,
-    phase: run.phase
-  };
+  runSnapshot = serializeRun(run, { includeTutorial: true });
 }
 
 function clearRunSnapshot() {
@@ -204,44 +186,26 @@ function hasRunSnapshot() {
 
 function restoreRunSnapshot() {
   if (!runSnapshot) return;
-  const s = runSnapshot;
-  run.deck = s.deck.map(cardFromJSON);
-  run.drawPile = s.drawPile.map(cardFromJSON);
-  run.discardPile = (s.discardPile || []).map(cardFromJSON);
-  run.hand = s.hand.map(cardFromJSON);
-  run.selected = new Set(s.selected);
-  run.jokers = s.jokers.map(id => jokerFromId(id)).filter(Boolean);
-  run.money = s.money;
-  run.ante = s.ante;
-  run.blindKey = s.blindKey;
-  run.anteProgress = { ...s.anteProgress };
-  run.boss = s.boss ? { ...s.boss } : null;
-  run.handsLeft = s.handsLeft;
-  run.discardsLeft = s.discardsLeft;
-  run.roundScore = s.roundScore;
-  run.levels = { ...s.levels };
-  run.rerollCost = s.rerollCost;
-  run.shopDiscount = s.shopDiscount || 0;
-  run.freePlanetNextShop = s.freePlanetNextShop || false;
-  run.cashOutSummary = s.cashOutSummary || null;
-  run.isTutorial = false;
-  run.tutorialStep = null;
-  run.phase = s.phase;
-  if (s.shop) {
-    run.shop = {
-      jokers: s.shop.jokers.map(id => jokerFromId(id)).filter(Boolean),
-      planets: s.shop.planets.map(p => ({ ...p })),
-      sold: new Set(s.shop.sold)
-    };
-  } else {
-    run.shop = null;
-  }
+  applySerializedRun(run, runSnapshot);
   clearRunSnapshot();
   tutorialController?.finish(false);
   els.welcomeModal.classList.add('hidden');
+  restoreRunUiAfterLoad();
+}
+
+function restoreRunUiAfterLoad() {
+  syncDiscoveredHandsToRun(run);
   closeAllModals();
+  hideItemTip();
   els.playedRow.innerHTML = '';
-  if (run.phase === 'shop' && run.shop) {
+  if (run._lastHandSave) {
+    els.lastHand.querySelector('.last-hand-name').textContent = run._lastHandSave.name;
+    els.lastHand.querySelector('.chips-pill').textContent = run._lastHandSave.chips;
+    els.lastHand.querySelector('.mult-pill').textContent = run._lastHandSave.mult;
+  }
+  if (run.phase === 'cashOut' && run.cashOutSummary) {
+    openCashOut();
+  } else if (run.phase === 'shop' && run.shop) {
     renderShop(run.cashOutSummary);
     els.shopModal.classList.remove('hidden');
   } else if (run.phase === 'blindSelect') {
@@ -251,7 +215,16 @@ function restoreRunSnapshot() {
   } else if (run.phase === 'win') {
     win();
   }
+  renderHandLevels();
   renderAll();
+}
+
+function resumeSavedRun() {
+  const data = loadRun();
+  if (!data || !applySerializedRun(run, data)) return;
+  els.welcomeModal.classList.add('hidden');
+  tutorialController?.finish(false);
+  restoreRunUiAfterLoad();
 }
 
 function requirementForRun() {
@@ -850,10 +823,11 @@ async function playSelected() {
   // Persist "last hand" stats
   const lastChips = chipsPill.textContent;
   const lastMult = multPill.textContent;
-  els.lastHand.querySelector('.last-hand-name').textContent =
-    `${HAND_LABELS[result.hand.type]}  ▸  ${result.total}`;
+  const lastHandName = `${HAND_LABELS[result.hand.type]}  ▸  ${result.total}`;
+  els.lastHand.querySelector('.last-hand-name').textContent = lastHandName;
   els.lastHand.querySelector('.chips-pill').textContent = lastChips;
   els.lastHand.querySelector('.mult-pill').textContent = lastMult;
+  run._lastHandSave = { name: lastHandName, chips: lastChips, mult: lastMult };
 
   run.handsLeft -= 1;
   drawToFull();
@@ -1138,6 +1112,7 @@ function showBlindSelect() {
 
 function gameOver() {
   run.phase = 'gameover';
+  clearSavedRun();
   const meta = BLIND_META[run.blindKey || 'small'];
   els.endTitle.textContent = '游戏结束';
   els.endText.innerHTML = `
@@ -1150,6 +1125,7 @@ function gameOver() {
 
 function win() {
   run.phase = 'win';
+  clearSavedRun();
   els.endTitle.textContent = '通关 ★';
   els.endText.innerHTML = `
     恭喜击败了全部 ${ANTES_TO_WIN} 关！<br/>
@@ -1198,6 +1174,7 @@ function resetRunState(tutorial = false) {
 }
 
 function initRun() {
+  clearSavedRun();
   resetRunState(false);
   syncDiscoveredHandsToRun(run);
   run.phase = 'blindSelect';
@@ -1219,6 +1196,7 @@ function initTutorialRun() {
 
 function startNormalRun() {
   clearRunSnapshot();
+  clearSavedRun();
   tutorialController?.finish(false);
   els.welcomeModal.classList.add('hidden');
   initRun();
@@ -1237,6 +1215,13 @@ function closeAllModals() {
 function showWelcome() {
   const done = TutorialController.hasCompleted();
   els.resumeTutorialBtn?.classList.toggle('hidden', done);
+  const save = loadRun();
+  if (save && els.resumeRunBtn) {
+    els.resumeRunBtn.classList.remove('hidden');
+    els.resumeRunBtn.textContent = `继续游戏 · ${formatSaveSummary(save)}`;
+  } else {
+    els.resumeRunBtn?.classList.add('hidden');
+  }
   els.welcomeModal.classList.remove('hidden');
 }
 
@@ -1256,6 +1241,7 @@ function renderAll() {
   renderBlind();
   renderHandPreview();
   renderHandLevels();
+  persistRun();
 }
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
@@ -1296,8 +1282,11 @@ document.addEventListener('keydown', (e) => {
 wireCodexUI(els);
 tutorialController = new TutorialController(gameApi);
 els.startGameBtn?.addEventListener('click', startNormalRun);
+els.resumeRunBtn?.addEventListener('click', resumeSavedRun);
 els.startTutorialBtn?.addEventListener('click', startTutorial);
 els.resumeTutorialBtn?.addEventListener('click', startTutorial);
+window.addEventListener('beforeunload', () => persistRunNow());
+window.addEventListener('pagehide', () => persistRunNow());
 els.openTutorialBtn?.addEventListener('click', () => {
   closeAllModals();
   const inProgress = els.welcomeModal.classList.contains('hidden') &&
