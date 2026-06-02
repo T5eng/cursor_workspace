@@ -69,6 +69,7 @@
       </div>
 
       <button class="ghost-btn" id="runInfoBtn">手牌等级 ▾</button>
+      <button class="ghost-btn codex-open-btn">图鉴</button>
     </aside>
 
     <!-- CENTER: table -->
@@ -78,6 +79,7 @@
           <span class="brand-mark">♠♥♦♣</span>
           <span class="brand-title">小丑牌</span>
           <span class="brand-sub">JOKER · POKER · ROGUELIKE</span>
+          <button type="button" class="ghost-btn brand-tutorial-btn" id="openCodexBtn" title="图鉴">图鉴</button>
           <button type="button" class="ghost-btn brand-tutorial-btn" id="openTutorialBtn" title="新手教程">教程</button>
         </div>
         <div class="joker-row" id="jokerRow">
@@ -139,6 +141,7 @@
           <li>小/大盲可 <b>跳过</b> 换 Tag；Boss 带特殊规则</li>
           <li>击败盲注 → <b>结算</b> → 商店买小丑与 <b>星球牌</b></li>
           <li>小丑可 <b>拖拽排序</b>、右键出售；Blueprint 复制右侧</li>
+          <li>顶部/欢迎页 <b>图鉴</b> 记录已获得与未抽到的牌</li>
         </ul>
       </div>
     </aside>
@@ -220,6 +223,31 @@
           </button>
         </div>
         <button type="button" class="ghost-btn welcome-resume hidden" id="resumeTutorialBtn">继续上次教程</button>
+        <button type="button" class="ghost-btn welcome-codex" id="welcomeCodexBtn">卡牌图鉴</button>
+      </div>
+    </div>
+
+    <!-- Modal: codex / collection -->
+    <div class="modal hidden" id="codexModal">
+      <div class="modal-card codex-card-modal">
+        <header class="modal-header">
+          <h2>卡牌图鉴</h2>
+          <button class="close-x" data-close>✕</button>
+        </header>
+        <p class="codex-stats" id="codexStats"></p>
+        <div class="codex-tabs" id="codexTabs">
+          <button type="button" class="codex-tab active" data-codex-tab="jokers">小丑</button>
+          <button type="button" class="codex-tab" data-codex-tab="planets">星球</button>
+          <button type="button" class="codex-tab" data-codex-tab="hands">牌型</button>
+        </div>
+        <div class="codex-filters" id="codexFilters">
+          <button type="button" class="codex-filter active" data-codex-filter="all">全部</button>
+          <button type="button" class="codex-filter" data-codex-filter="obtained">已获得</button>
+          <button type="button" class="codex-filter" data-codex-filter="seen">已遇见</button>
+          <button type="button" class="codex-filter" data-codex-filter="unknown">未抽出</button>
+        </div>
+        <div class="codex-grid" id="codexGrid"></div>
+        <p class="codex-hint">进度保存在本浏览器 localStorage，换设备不共享。</p>
       </div>
     </div>
 

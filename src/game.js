@@ -16,6 +16,10 @@ import {
 } from './bosses.js';
 import { rollShopPlanets, planetLabel } from './planets.js';
 import { rollSkipTag } from './tags.js';
+import {
+  markJokerObtained, markPlanetObtained, markHandObtained, markShopOffer,
+  syncDiscoveredHandsToRun, wireCodexUI
+} from './codex.js';
 
 // ---------- Constants ----------
 const STARTING_HANDS = 4;
@@ -132,7 +136,14 @@ const els = {
   startGameBtn: $('startGameBtn'),
   startTutorialBtn: $('startTutorialBtn'),
   resumeTutorialBtn: $('resumeTutorialBtn'),
-  openTutorialBtn: $('openTutorialBtn')
+  openTutorialBtn: $('openTutorialBtn'),
+  openCodexBtn: $('openCodexBtn'),
+  welcomeCodexBtn: $('welcomeCodexBtn'),
+  codexModal: $('codexModal'),
+  codexStats: $('codexStats'),
+  codexTabs: $('codexTabs'),
+  codexFilters: $('codexFilters'),
+  codexGrid: $('codexGrid')
 };
 
 let tutorialController = null;
@@ -171,6 +182,7 @@ const gameApi = {
   },
   setJokers(ids) {
     run.jokers = ids.map(id => jokerFromId(id)).filter(Boolean);
+    for (const id of ids) markJokerObtained(id);
     renderJokers();
   },
   setTarget(n) {
@@ -203,6 +215,7 @@ const gameApi = {
     };
     run.rerollCost = 5;
     renderShop({ blindReward: 3, handBonus: 2, interest: 0 });
+    markShopOffer(run.shop);
     els.shopModal.classList.remove('hidden');
     setTimeout(() => tutorialController?.updateSpotlight('#shopModal .modal-card'), 80);
   }
@@ -585,6 +598,7 @@ async function playSelected() {
     for (const c of playedCards) run.pillarPlayedIds.add(c.id);
   }
   markHandDiscovered(run, result.hand.type);
+  markHandObtained(result.hand.type);
   if (!run.isTutorial) afterBossHandPlayed(run, playedCards, result.hand.type);
 
   // Persist "last hand" stats
@@ -698,6 +712,7 @@ function openShop(summary) {
   };
   run.rerollCost = 5;
   run.shopDiscount = 0;
+  markShopOffer(run.shop);
   renderShop(summary);
   els.shopModal.classList.remove('hidden');
 }
@@ -766,6 +781,7 @@ function buyJoker(i) {
   if (run.jokers.length >= JOKER_SLOTS) return;
   run.money -= cost;
   run.jokers.push(j);
+  markJokerObtained(j.id);
   run.shop.sold.add(`j${i}`);
   renderShop(run.cashOutSummary);
   renderJokers();
@@ -780,6 +796,7 @@ function buyPlanet(i) {
   run.money -= cost;
   const key = p.handType === 'Royal Flush' ? 'Straight Flush' : p.handType;
   run.levels[key] = (run.levels[key] || 1) + 1;
+  markPlanetObtained(p.id);
   run.shop.sold.add(`p${i}`);
   renderShop(run.cashOutSummary);
   renderHandLevels();
@@ -792,6 +809,7 @@ function reroll() {
   run.shop.jokers = rollShopJokers(2, new Set(run.jokers.map(j => j.id)));
   run.shop.planets = rollShopPlanets(2, run.discoveredHands);
   run.shop.sold = new Set();
+  markShopOffer(run.shop);
   renderShop(run.cashOutSummary);
 }
 
@@ -930,6 +948,7 @@ function resetRunState(tutorial = false) {
 
 function initRun() {
   resetRunState(false);
+  syncDiscoveredHandsToRun(run);
   run.phase = 'blindSelect';
   renderHandLevels();
   showBlindSelect();
@@ -938,6 +957,7 @@ function initRun() {
 
 function initTutorialRun() {
   resetRunState(true);
+  syncDiscoveredHandsToRun(run);
   run.phase = 'blindSelect';
   renderHandLevels();
   els.blindSelectModal.classList.add('hidden');
@@ -954,6 +974,7 @@ function startNormalRun() {
 
 function closeAllModals() {
   els.handLevelsModal.classList.add('hidden');
+  els.codexModal.classList.add('hidden');
   els.cashOutModal.classList.add('hidden');
   els.shopModal.classList.add('hidden');
   els.blindSelectModal.classList.add('hidden');
@@ -1010,6 +1031,7 @@ document.addEventListener('keydown', (e) => {
 });
 
 // Boot
+wireCodexUI(els);
 tutorialController = new TutorialController(gameApi);
 els.startGameBtn?.addEventListener('click', startNormalRun);
 els.startTutorialBtn?.addEventListener('click', startTutorial);

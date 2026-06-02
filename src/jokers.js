@@ -184,7 +184,7 @@ export const JOKER_DEFS = [
     desc: '出牌包含顺子时\n+100 筹码',
     hooks: {
       onHandPlayed(hand, ctx) {
-        if (['Straight','Straight Flush'].includes(hand.type)) ctx.addChips(100, this);
+        if (['Straight','Straight Flush','Royal Flush'].includes(hand.type)) ctx.addChips(100, this);
       }
     }
   },
