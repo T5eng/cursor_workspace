@@ -533,15 +533,124 @@ function renderHandLevels() {
 }
 
 // ---------- Popup animations ----------
-function spawnPopup(text, kind, anchor) {
+function spawnPopup(text, kind, anchor, extraClass = '') {
   const rect = anchor.getBoundingClientRect();
   const popup = document.createElement('div');
-  popup.className = `popup ${kind}`;
+  popup.className = `popup ${kind}${extraClass ? ` ${extraClass}` : ''}`;
   popup.textContent = text;
   popup.style.left = `${rect.left + rect.width / 2}px`;
   popup.style.top = `${rect.top - 6}px`;
   els.popupLayer.appendChild(popup);
-  setTimeout(() => popup.remove(), 900);
+  const ttl = kind === 'hand-total' ? 1400 : 900;
+  setTimeout(() => popup.remove(), ttl);
+}
+
+const HAND_IMPACT_RANK = {
+  'High Card': 0,
+  'Pair': 1,
+  'Two Pair': 2,
+  'Three of a Kind': 3,
+  'Straight': 4,
+  'Flush': 4,
+  'Full House': 5,
+  'Four of a Kind': 6,
+  'Straight Flush': 7
+};
+
+/** Visual intensity when a hand's total lands on round score */
+function scoreImpactTier(handType, score, mult) {
+  const rank = HAND_IMPACT_RANK[handType] ?? 0;
+  if (rank >= 7 || score >= 5000 || mult >= 40) return 'legendary';
+  if (rank >= 6 || score >= 2000 || mult >= 25) return 'epic';
+  if (rank >= 4 || score >= 500 || mult >= 10) return 'great';
+  if (rank >= 3 || score >= 200 || mult >= 6) return 'good';
+  return 'normal';
+}
+
+function easeOutCubic(t) {
+  return 1 - (1 - t) ** 3;
+}
+
+const SCORE_FLY_MS = { normal: 520, good: 620, great: 780, epic: 950, legendary: 1100 };
+const SCORE_COUNT_MS = { normal: 420, good: 520, great: 680, epic: 880, legendary: 1050 };
+
+async function animateRoundScoreAdd({ score, handType, finalMult }) {
+  const tier = scoreImpactTier(handType, score, finalMult);
+  const startScore = run.roundScore;
+  const endScore = startScore + score;
+  const preview = els.handPreview;
+  const target = els.roundScore;
+  const panel = target.closest('.score-panel');
+  const table = document.querySelector('.table');
+
+  preview.classList.add('score-burst', `score-burst-${tier}`);
+  const totalPopupClass = tier === 'epic' || tier === 'legendary' ? 'epic' : '';
+  spawnPopup(`= ${score}`, 'hand-total', preview, totalPopupClass);
+
+  const pauseBeforeFly = { normal: 200, good: 260, great: 340, epic: 420, legendary: 500 }[tier];
+  await sleep(pauseBeforeFly);
+
+  const fromRect = preview.getBoundingClientRect();
+  const toRect = target.getBoundingClientRect();
+  const flyMs = SCORE_FLY_MS[tier];
+
+  const fly = document.createElement('div');
+  fly.className = `score-fly score-fly-${tier}`;
+  fly.style.setProperty('--fly-dur', `${flyMs}ms`);
+  fly.textContent = `+${score}`;
+  fly.style.left = `${fromRect.left + fromRect.width / 2}px`;
+  fly.style.top = `${fromRect.top + fromRect.height / 2}px`;
+  els.popupLayer.appendChild(fly);
+
+  if (tier === 'epic' || tier === 'legendary') {
+    for (let i = 0; i < 5; i++) {
+      const trail = document.createElement('div');
+      trail.className = 'score-fly-trail';
+      trail.style.left = `${fromRect.left + fromRect.width / 2 + (i - 2) * 10}px`;
+      trail.style.top = `${fromRect.top + fromRect.height / 2}px`;
+      els.popupLayer.appendChild(trail);
+      setTimeout(() => trail.remove(), 620);
+    }
+  }
+
+  requestAnimationFrame(() => {
+    fly.classList.add('score-fly-active');
+    fly.style.left = `${toRect.left + toRect.width / 2}px`;
+    fly.style.top = `${toRect.top + toRect.height / 2}px`;
+  });
+
+  await sleep(flyMs);
+
+  fly.remove();
+  panel?.classList.add(`score-panel-impact-${tier}`);
+  target.classList.add('round-score-impact', `round-score-impact-${tier}`);
+
+  if (tier === 'great' || tier === 'epic' || tier === 'legendary') {
+    table?.classList.add(tier === 'great' ? 'score-shake' : 'score-shake-epic');
+    setTimeout(() => table?.classList.remove('score-shake', 'score-shake-epic'), 700);
+  }
+
+  const countMs = SCORE_COUNT_MS[tier];
+  const t0 = performance.now();
+  await new Promise(resolve => {
+    function frame(now) {
+      const p = Math.min(1, (now - t0) / countMs);
+      target.textContent = Math.floor(startScore + (endScore - startScore) * easeOutCubic(p));
+      if (p < 1) requestAnimationFrame(frame);
+      else {
+        run.roundScore = endScore;
+        target.textContent = endScore;
+        const settle = { normal: 280, good: 320, great: 400, epic: 480, legendary: 560 }[tier];
+        setTimeout(() => {
+          target.classList.remove('round-score-impact', `round-score-impact-${tier}`);
+          panel?.classList.remove(`score-panel-impact-${tier}`);
+          preview.classList.remove('score-burst', `score-burst-${tier}`);
+          resolve();
+        }, settle);
+      }
+    }
+    requestAnimationFrame(frame);
+  });
 }
 
 // ---------- Selection ----------
@@ -718,12 +827,11 @@ async function playSelected() {
       continue;
     }
     if (ev.kind === 'final') {
-      // big score bump
-      run.roundScore += ev.score;
-      els.roundScore.textContent = run.roundScore;
-      els.roundScore.classList.add('bump');
-      setTimeout(() => els.roundScore.classList.remove('bump'), 200);
-      await sleep(380);
+      await animateRoundScoreAdd({
+        score: ev.score,
+        handType: result.hand.type,
+        finalMult: ev.snapshot.mult
+      });
     }
   }
 
