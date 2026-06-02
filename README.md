@@ -7,6 +7,16 @@
 
 ---
 
+## 在线游玩（GitHub Pages）
+
+部署完成后，手机/电脑浏览器打开：
+
+**https://t5eng.github.io/cursor_workspace/**
+
+（每次推送到 `main` 会自动重新部署，约 1–2 分钟生效。）
+
+---
+
 ## 在 Mac 上启动（任选一种）
 
 ### 方法 1：直接双击 `index.html`
