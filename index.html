@@ -74,6 +74,7 @@
           <span class="brand-mark">♠♥♦♣</span>
           <span class="brand-title">小丑牌</span>
           <span class="brand-sub">JOKER · POKER · ROGUELIKE</span>
+          <button type="button" class="ghost-btn brand-tutorial-btn" id="openTutorialBtn" title="新手教程">教程</button>
         </div>
         <div class="joker-row" id="jokerRow">
           <!-- joker cards injected here -->
@@ -175,6 +176,31 @@
       </div>
     </div>
 
+    <!-- Modal: welcome -->
+    <div class="modal" id="welcomeModal">
+      <div class="modal-card welcome-card">
+        <div class="welcome-hero">
+          <span class="welcome-mark">♠♥♦♣</span>
+          <h1>小丑牌</h1>
+          <p class="welcome-tagline">扑克 Roguelike · 筹码 × 倍数 · 小丑 Combo</p>
+        </div>
+        <p class="welcome-desc">
+          用手牌组成牌型得分，击败盲注赚取金币，在商店购买小丑强化构筑，连过 8 关即可通关。
+        </p>
+        <div class="welcome-actions">
+          <button type="button" class="btn btn-play" id="startTutorialBtn">
+            <span class="btn-main">新手教程</span>
+            <span class="btn-sub">Interactive Tutorial</span>
+          </button>
+          <button type="button" class="btn btn-discard" id="startGameBtn">
+            <span class="btn-main">开始游戏</span>
+            <span class="btn-sub">Start Run</span>
+          </button>
+        </div>
+        <button type="button" class="ghost-btn welcome-resume hidden" id="resumeTutorialBtn">继续上次教程</button>
+      </div>
+    </div>
+
     <!-- Modal: game over / win -->
     <div class="modal hidden" id="endModal">
       <div class="modal-card end-card">
@@ -192,5 +218,6 @@
   </div>
 
   <script type="module" src="./src/game.js"></script>
+  <!-- tutorial overlay injected by tutorial.js -->
 </body>
 </html>

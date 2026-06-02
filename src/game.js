@@ -8,6 +8,7 @@ import {
 } from './cards.js';
 import { JOKER_DEFS, JOKERS_BY_ID, rollShopJokers } from './jokers.js';
 import { scoreHand } from './scorer.js';
+import { TutorialController, cardsFromSpecs, jokerFromId } from './tutorial.js';
 
 // ---------- Constants ----------
 const STARTING_HANDS = 4;
@@ -48,7 +49,10 @@ const run = {
   levels: defaultHandLevels(),
   rerollCost: 5,
   shop: null,       // current shop offer
-  phase: 'blindSelect' // 'blindSelect' | 'playing' | 'shop' | 'gameover' | 'win'
+  phase: 'blindSelect', // 'blindSelect' | 'playing' | 'shop' | 'gameover' | 'win'
+  isTutorial: false,
+  tutorialStep: null,
+  tutorialTarget: 40
 };
 
 // ---------- DOM refs ----------
@@ -96,7 +100,79 @@ const els = {
   endText: $('endText'),
   restartBtn: $('restartBtn'),
 
-  popupLayer: $('popupLayer')
+  popupLayer: $('popupLayer'),
+
+  welcomeModal: $('welcomeModal'),
+  startGameBtn: $('startGameBtn'),
+  startTutorialBtn: $('startTutorialBtn'),
+  resumeTutorialBtn: $('resumeTutorialBtn'),
+  openTutorialBtn: $('openTutorialBtn')
+};
+
+let tutorialController = null;
+
+function requirementForRun() {
+  if (run.isTutorial) return run.tutorialTarget;
+  return requirementFor(run.ante, run.blindIndex);
+}
+
+function notifyTutorial(event, data) {
+  tutorialController?.onGameEvent(event, data);
+}
+
+const gameApi = {
+  get run() { return run; },
+  get els() { return els; },
+  initTutorialRun,
+  startNormalRun,
+  closeAllModals,
+  setHand(specs) {
+    run.hand = cardsFromSpecs(specs);
+    run.drawPile = [];
+    run.selected.clear();
+    renderAll();
+  },
+  setJokers(ids) {
+    run.jokers = ids.map(id => jokerFromId(id)).filter(Boolean);
+    renderJokers();
+  },
+  setTarget(n) {
+    run.tutorialTarget = n;
+    renderBlind();
+  },
+  startRound() {
+    run.phase = 'playing';
+    run.handsLeft = STARTING_HANDS;
+    run.discardsLeft = STARTING_DISCARDS;
+    run.roundScore = 0;
+    run.selected.clear();
+    els.blindSelectModal.classList.add('hidden');
+    renderAll();
+  },
+  clearSelection() {
+    run.selected.clear();
+    renderHandPreview();
+    for (const el of els.handRow.querySelectorAll('.card')) {
+      el.classList.remove('selected');
+    }
+  },
+  getSelectedCards() {
+    return run.hand.filter(c => run.selected.has(c.id));
+  },
+  openTutorialShop() {
+    run.phase = 'shop';
+    const lusty = jokerFromId('lusty');
+    const greedy = jokerFromId('greedy');
+    run.shop = {
+      jokers: [lusty, greedy].filter(Boolean),
+      boosters: [],
+      sold: new Set()
+    };
+    run.rerollCost = 5;
+    renderShop({ blindReward: 3, handBonus: 2, interest: 0 });
+    els.shopModal.classList.remove('hidden');
+    setTimeout(() => tutorialController?.updateSpotlight('#shopModal .modal-card'), 80);
+  }
 };
 
 // ---------- Rendering helpers ----------
@@ -166,8 +242,8 @@ function renderStats() {
 
 function renderBlind() {
   const b = BLIND_TYPES[run.blindIndex];
-  els.blindName.textContent = b.name;
-  els.blindTarget.textContent = requirementFor(run.ante, run.blindIndex);
+  els.blindName.textContent = run.isTutorial ? '教学关' : b.name;
+  els.blindTarget.textContent = requirementForRun();
   els.blindReward.textContent = b.reward;
 }
 
@@ -226,6 +302,7 @@ function spawnPopup(text, kind, anchor) {
 // ---------- Selection ----------
 function toggleSelect(card) {
   if (run.phase !== 'playing') return;
+  if (tutorialController?.active && !tutorialController.canSelectCard(card)) return;
   if (run.selected.has(card.id)) {
     run.selected.delete(card.id);
   } else {
@@ -237,6 +314,7 @@ function toggleSelect(card) {
     el.classList.toggle('selected', run.selected.has(el.dataset.id));
   }
   renderHandPreview();
+  notifyTutorial('selection-changed');
 }
 
 // ---------- Round flow ----------
@@ -279,6 +357,7 @@ function sortHandBySuit() {
 
 async function playSelected() {
   if (run.selected.size === 0 || run.phase !== 'playing') return;
+  if (tutorialController?.active && !tutorialController.canPlay()) return;
   const playedCards = run.hand.filter(c => run.selected.has(c.id));
 
   // 1) move played cards from hand → played row
@@ -378,19 +457,25 @@ async function playSelected() {
   drawToFull();
   renderAll();
 
-  // Check round outcome
-  const target = requirementFor(run.ante, run.blindIndex);
-  if (run.roundScore >= target) {
+  notifyTutorial('hand-played', { played: playedCards });
+
+  // Check round outcome (skipped during tutorial — shop is scripted)
+  const target = requirementForRun();
+  if (!run.isTutorial && run.roundScore >= target) {
     await sleep(360);
     winBlind();
-  } else if (run.handsLeft <= 0) {
+  } else if (!run.isTutorial && run.handsLeft <= 0) {
     await sleep(360);
     gameOver();
+  } else if (run.isTutorial && run.handsLeft <= 0) {
+    run.handsLeft = 1;
+    renderStats();
   }
 }
 
 function discardSelected() {
   if (run.discardsLeft <= 0 || run.selected.size === 0 || run.phase !== 'playing') return;
+  if (tutorialController?.active && !tutorialController.canDiscard()) return;
   const cards = run.hand.filter(c => run.selected.has(c.id));
   for (const c of cards) {
     const idx = run.hand.indexOf(c);
@@ -400,6 +485,7 @@ function discardSelected() {
   run.discardsLeft -= 1;
   drawToFull();
   renderAll();
+  notifyTutorial('discarded', { cards });
 }
 
 function winBlind() {
@@ -525,6 +611,10 @@ function reroll() {
 
 function nextRound() {
   els.shopModal.classList.add('hidden');
+  if (run.isTutorial && tutorialController?.active) {
+    tutorialController.onShopFinished();
+    return;
+  }
   // advance blind
   run.blindIndex += 1;
   if (run.blindIndex > 2) {
@@ -540,6 +630,11 @@ function nextRound() {
 }
 
 function showBlindSelect() {
+  if (run.isTutorial && tutorialController?.shouldBlockBlindModal()) {
+    run.phase = 'playing';
+    renderAll();
+    return;
+  }
   run.phase = 'blindSelect';
   const b = BLIND_TYPES[run.blindIndex];
   const target = requirementFor(run.ante, run.blindIndex);
@@ -610,10 +705,61 @@ function initRun() {
   run.discardsLeft = STARTING_DISCARDS;
   run.roundScore = 0;
   run.levels = defaultHandLevels();
+  run.isTutorial = false;
+  run.tutorialStep = null;
   run.phase = 'blindSelect';
   renderHandLevels();
   showBlindSelect();
   renderAll();
+}
+
+function initTutorialRun() {
+  run.deck = createDeck();
+  run.drawPile = [];
+  run.hand = [];
+  run.selected = new Set();
+  run.jokers = [];
+  run.money = 8;
+  run.ante = 1;
+  run.blindIndex = 0;
+  run.blindBeaten = [false, false, false];
+  run.handsLeft = STARTING_HANDS;
+  run.discardsLeft = STARTING_DISCARDS;
+  run.roundScore = 0;
+  run.levels = defaultHandLevels();
+  run.isTutorial = true;
+  run.tutorialTarget = 40;
+  run.phase = 'blindSelect';
+  renderHandLevels();
+  els.blindSelectModal.classList.add('hidden');
+  els.shopModal.classList.add('hidden');
+  els.endModal.classList.add('hidden');
+  renderAll();
+}
+
+function startNormalRun() {
+  tutorialController?.finish(false);
+  els.welcomeModal.classList.add('hidden');
+  initRun();
+}
+
+function closeAllModals() {
+  els.handLevelsModal.classList.add('hidden');
+  els.shopModal.classList.add('hidden');
+  els.blindSelectModal.classList.add('hidden');
+  els.endModal.classList.add('hidden');
+}
+
+function showWelcome() {
+  const done = TutorialController.hasCompleted();
+  els.resumeTutorialBtn?.classList.toggle('hidden', done);
+  els.welcomeModal.classList.remove('hidden');
+}
+
+function startTutorial() {
+  els.welcomeModal.classList.add('hidden');
+  if (!tutorialController) tutorialController = new TutorialController(gameApi);
+  tutorialController.start();
 }
 
 function renderAll() {
@@ -653,4 +799,12 @@ document.addEventListener('keydown', (e) => {
 });
 
 // Boot
-initRun();
+tutorialController = new TutorialController(gameApi);
+els.startGameBtn?.addEventListener('click', startNormalRun);
+els.startTutorialBtn?.addEventListener('click', startTutorial);
+els.resumeTutorialBtn?.addEventListener('click', startTutorial);
+els.openTutorialBtn?.addEventListener('click', () => {
+  closeAllModals();
+  startTutorial();
+});
+showWelcome();

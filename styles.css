@@ -880,3 +880,172 @@ body {
   #app { grid-template-columns: 200px 1fr; }
   .rail-right { display: none; }
 }
+
+/* ---------- Welcome screen ---------- */
+.welcome-card {
+  text-align: center;
+  min-width: 440px;
+  max-width: 520px;
+  padding: 28px 32px 26px;
+}
+.welcome-hero {
+  margin-bottom: 18px;
+}
+.welcome-mark {
+  display: block;
+  font-size: 28px;
+  letter-spacing: 0.2em;
+  opacity: 0.85;
+  margin-bottom: 8px;
+}
+.welcome-card h1 {
+  margin: 0;
+  font-size: 42px;
+  font-weight: 900;
+  color: var(--gold);
+  letter-spacing: 0.12em;
+}
+.welcome-tagline {
+  margin: 8px 0 0;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+}
+.welcome-desc {
+  color: var(--ink-dim);
+  font-size: 15px;
+  line-height: 1.65;
+  margin: 0 0 22px;
+}
+.welcome-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.welcome-actions .btn { width: 100%; }
+.welcome-resume {
+  margin-top: 14px;
+  font-size: 13px;
+}
+.brand-tutorial-btn {
+  margin-left: 12px;
+  padding: 4px 10px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+}
+
+/* ---------- Tutorial overlay ---------- */
+body.tutorial-active #app {
+  pointer-events: auto;
+}
+
+.tutorial-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  pointer-events: none;
+}
+.tutorial-overlay.hidden { display: none; }
+
+.tutorial-dim {
+  position: absolute;
+  inset: 0;
+  background: rgba(8, 2, 14, 0.62);
+  pointer-events: auto;
+}
+
+.tutorial-spotlight {
+  position: fixed;
+  display: none;
+  border-radius: 16px;
+  box-shadow:
+    0 0 0 9999px rgba(8, 2, 14, 0.62),
+    0 0 0 2px rgba(245, 197, 74, 0.85),
+    0 0 28px rgba(245, 197, 74, 0.35);
+  pointer-events: none;
+  z-index: 151;
+  transition: left 180ms ease, top 180ms ease, width 180ms ease, height 180ms ease;
+}
+
+.tutorial-overlay:not(.has-spotlight) .tutorial-dim {
+  background: rgba(8, 2, 14, 0.78);
+}
+.tutorial-overlay.has-spotlight .tutorial-dim {
+  background: transparent;
+  pointer-events: none;
+}
+
+.tutorial-panel {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+  width: min(520px, calc(100vw - 32px));
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(0, 0, 0, 0.25)),
+    linear-gradient(180deg, #2a1531, #1a0820);
+  border: 1px solid rgba(245, 197, 74, 0.35);
+  border-radius: 16px;
+  padding: 18px 20px 16px;
+  box-shadow: var(--shadow-deep);
+  pointer-events: auto;
+  z-index: 152;
+  animation: tutorialSlideUp 280ms ease;
+}
+@keyframes tutorialSlideUp {
+  from { opacity: 0; transform: translateX(-50%) translateY(16px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+.tutorial-progress {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  margin-bottom: 6px;
+}
+
+.tutorial-title {
+  margin: 0 0 8px;
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--gold);
+  letter-spacing: 0.06em;
+}
+
+.tutorial-body {
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.65;
+  margin-bottom: 14px;
+}
+.tutorial-body strong { color: var(--gold); }
+
+.tutorial-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.tutorial-skip {
+  font-size: 12px;
+  padding: 6px 10px;
+}
+.tutorial-next.hidden { display: none; }
+.tutorial-next .btn-main { min-width: 72px; }
+
+/* Allow clicking highlighted UI through overlay */
+.tutorial-overlay.has-spotlight ~ #app,
+body.tutorial-active .blind-panel,
+body.tutorial-active .stats-panel,
+body.tutorial-active #handPreview,
+body.tutorial-active #handRow,
+body.tutorial-active #playBtn,
+body.tutorial-active #discardBtn,
+body.tutorial-active #jokerRow {
+  position: relative;
+  z-index: auto;
+}
