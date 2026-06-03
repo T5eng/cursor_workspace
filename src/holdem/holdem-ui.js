@@ -31,6 +31,7 @@ export function bootHoldem(rootEl) {
     resumeBtn: rootEl.querySelector('#holdemResumeBtn'),
     gameWrap: rootEl.querySelector('#holdemGameWrap'),
     seats: rootEl.querySelector('#holdemSeats'),
+    heroHand: rootEl.querySelector('#holdemHeroHand'),
     board: rootEl.querySelector('#holdemBoard'),
     pot: rootEl.querySelector('#holdemPot'),
     street: rootEl.querySelector('#holdemStreet'),
@@ -234,6 +235,7 @@ function render() {
   els.message.textContent = view.message;
   renderBoard(view.board);
   renderSeats(view);
+  renderHeroHand(view);
   renderActions(view);
   els.nextHandBtn.classList.toggle('hidden', view.phase !== 'handOver' && view.phase !== 'showdown');
   persistSave();
@@ -269,6 +271,15 @@ function cardEl(c) {
 function seatClass(i) {
   const pos = gameMeta.gameMode === 'heads-up' ? SEAT_POS_HU : SEAT_POS_6;
   return pos[i] ?? SEAT_POS_6[i];
+}
+
+
+function renderHeroHand(view) {
+  if (!els.heroHand) return;
+  els.heroHand.innerHTML = '';
+  const human = view.players[humanSeat];
+  if (!human?.hole?.length) return;
+  human.hole.forEach(c => els.heroHand.appendChild(cardEl(c)));
 }
 
 function renderSeats(view) {

@@ -2090,6 +2090,9 @@ body.tutorial-active #jokerRow {
   color: var(--gold);
   font-size: 22px;
 }
+.holdem-hero-hand {
+  display: none;
+}
 .holdem-message {
   position: absolute;
   bottom: 8%;
@@ -2216,14 +2219,133 @@ body.tutorial-active #jokerRow {
 
 @media (max-width: 768px) {
   .holdem-app {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto 1fr auto;
+    padding: 8px 10px;
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
   }
-  .holdem-sidebar {
-    max-height: 200px;
+  .holdem-game-wrap {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr auto;
+    gap: 8px;
+  }
+  .holdem-top {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .holdem-top .ghost-btn {
+    font-size: 11px;
+    padding: 6px 8px;
+  }
+  .holdem-brand {
+    font-size: 16px;
+    flex: 1;
+    text-align: center;
+  }
+  .holdem-table-wrap {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: visible;
   }
   .holdem-felt {
-    max-height: 50vh;
+    width: 100%;
+    max-height: none;
+    min-height: 200px;
+    aspect-ratio: 4 / 3.2;
+    border-radius: 24px;
+    flex: 1;
+  }
+  .holdem-info-bar {
+    top: 8%;
+    font-size: 12px;
+    gap: 12px;
+  }
+  .holdem-board {
+    top: 26%;
+    gap: 4px;
+    z-index: 2;
+  }
+  .holdem-board .holdem-card,
+  .holdem-board .slot.empty {
+    width: 36px;
+    height: 50px;
+    font-size: 11px;
+  }
+  .holdem-board .slot.empty {
+    width: 36px;
+    height: 50px;
+  }
+  .holdem-seat {
+    width: 88px;
+    font-size: 10px;
+  }
+  .holdem-seat.seat-0 {
+    bottom: 6%;
+    width: 100%;
+    max-width: 200px;
+  }
+  .holdem-seat.seat-0 .holdem-hole {
+    display: none;
+  }
+  .holdem-seat.seat-1 { bottom: 18%; left: 4%; }
+  .holdem-seat.seat-2 { top: 14%; left: 4%; }
+  .holdem-seat.seat-3 { top: 2%; }
+  .holdem-seat.seat-4 { top: 14%; right: 4%; }
+  .holdem-seat.seat-5 { bottom: 18%; right: 4%; }
+  .holdem-heads-up .holdem-seat.seat-3 {
+    top: 6%;
+  }
+  .holdem-card {
+    width: 40px;
+    height: 56px;
+  }
+  .holdem-card.back {
+    font-size: 16px;
+  }
+  .holdem-message {
+    bottom: 4%;
+    font-size: 11px;
+    max-width: 95%;
+    z-index: 1;
+  }
+  .holdem-hero-hand {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+    padding: 6px 0 2px;
+    min-height: 62px;
+    z-index: 5;
+  }
+  .holdem-hero-hand .holdem-card {
+    width: 52px;
+    height: 72px;
+    box-shadow: var(--shadow-deep);
+  }
+  .holdem-sidebar {
+    max-height: none;
+    flex-shrink: 0;
+  }
+  .holdem-log {
+    max-height: 72px;
+  }
+  .holdem-actions .btn {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 380px) {
+  .holdem-board .holdem-card,
+  .holdem-board .slot.empty {
+    width: 30px;
+    height: 42px;
+  }
+  .holdem-hero-hand .holdem-card {
+    width: 46px;
+    height: 64px;
+  }
+  .holdem-felt {
+    min-height: 180px;
   }
 }
 
