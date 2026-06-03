@@ -1,7 +1,7 @@
 // Texas Hold'em UI — 6-max / heads-up, save, LLM opponents
 
 import {
-  createPlayer, createTable, startHand, applyAction, publicState, getLegalActions
+  createPlayer, createTable, startHand, applyAction, publicState, getLegalActions, getRaisePresets
 } from './engine.js';
 import { decideBotAction } from './llm-bot.js';
 import { describeRank } from './hand-rank.js';
@@ -41,6 +41,7 @@ export function bootHoldem(rootEl) {
     raiseBtn: rootEl.querySelector('#holdemRaise'),
     raiseSlider: rootEl.querySelector('#holdemRaiseSlider'),
     raiseLabel: rootEl.querySelector('#holdemRaiseLabel'),
+    raisePresets: rootEl.querySelector('#holdemRaisePresets'),
     nextHandBtn: rootEl.querySelector('#holdemNextHand'),
     saveBtn: rootEl.querySelector('#holdemSaveBtn'),
     llmBtn: rootEl.querySelector('#holdemLlmBtn'),
@@ -303,6 +304,8 @@ function renderActions(view) {
     else main.textContent = '跟注';
   }
 
+  renderRaisePresets(legal);
+
   if (legal?.raise) {
     els.raiseSlider.min = legal.raise.min;
     els.raiseSlider.max = legal.raise.max;
@@ -312,6 +315,35 @@ function renderActions(view) {
   } else {
     els.raiseSlider.disabled = true;
     els.raiseLabel.textContent = legal?.allIn ? '全下' : '—';
+  }
+}
+
+function renderRaisePresets(legal) {
+  const box = els.raisePresets;
+  if (!box) return;
+  box.innerHTML = '';
+  if (!legal?.raise || !table) {
+    box.classList.add('hidden');
+    return;
+  }
+  const presets = getRaisePresets(table, humanSeat);
+  if (!presets.length) {
+    box.classList.add('hidden');
+    return;
+  }
+  box.classList.remove('hidden');
+  for (const preset of presets) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'holdem-preset-btn';
+    btn.textContent = preset.label;
+    btn.title = `$${preset.amount}`;
+    btn.addEventListener('click', () => {
+      els.raiseSlider.value = String(preset.amount);
+      updateRaiseLabel();
+      humanAct('raise', preset.amount);
+    });
+    box.appendChild(btn);
   }
 }
 

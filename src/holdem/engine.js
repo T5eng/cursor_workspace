@@ -95,12 +95,26 @@ function nextSeat(t, from, pred) {
 
 function firstToActPreflop(t) {
   const n = t.players.length;
+  // Heads-up: SB (button) acts first preflop
   if (n === 2) return t.dealerIndex;
-  return nextSeat(t, t.dealerIndex, p => canAct(p));
+  // 6-max+: UTG = first active seat left of big blind (枪口)
+  return nextSeat(t, t.bbSeat, p => canAct(p));
 }
 
 function firstToActPostflop(t) {
-  return nextSeat(t, t.dealerIndex, p => canAct(p));
+  const n = t.players.length;
+  // Heads-up: BB acts first postflop (first active left of button/SB)
+  if (n === 2) return nextSeat(t, t.dealerIndex, p => canAct(p));
+  // 6-max+: first active small blind
+  return nextSeat(t, t.sbSeat - 1, p => canAct(p));
+}
+
+export function computeBlindSeats(t) {
+  const n = t.players.length;
+  const sbSeat = n === 2 ? t.dealerIndex : nextSeat(t, t.dealerIndex, p => p.stack > 0);
+  const bbSeat = nextSeat(t, sbSeat, p => p.stack > 0);
+  t.sbSeat = sbSeat;
+  t.bbSeat = bbSeat;
 }
 
 function bettingComplete(t) {
@@ -248,10 +262,13 @@ export function startHand(t) {
     return false;
   }
 
-  t.dealerIndex = nextSeat(t, t.dealerIndex - 1, p => p.stack > 0);
+  const prevDealer = t.dealerIndex < 0 ? t.players.length - 1 : t.dealerIndex;
+  t.dealerIndex = nextSeat(t, prevDealer, p => p.stack > 0);
   const n = t.players.length;
   const sbSeat = n === 2 ? t.dealerIndex : nextSeat(t, t.dealerIndex, p => p.stack > 0);
   const bbSeat = nextSeat(t, sbSeat, p => p.stack > 0);
+  t.sbSeat = sbSeat;
+  t.bbSeat = bbSeat;
 
   t.deck = shuffle(createDeck());
   for (const p of t.players) {
@@ -306,6 +323,50 @@ export function getLegalActions(t, seatId) {
     actions.allIn = { amount: p.betStreet + p.stack };
   }
   return actions;
+}
+
+/** Quick-raise chip totals (street total) for UI preset buttons */
+export function getRaisePresets(t, seatId) {
+  const legal = getLegalActions(t, seatId);
+  if (!legal?.raise) return [];
+
+  const p = t.players[seatId];
+  const { min, max } = legal.raise;
+  const bb = t.bigBlind;
+  const toCall = t.currentBet - p.betStreet;
+  const seen = new Set();
+  const presets = [];
+
+  const add = (id, label, amount) => {
+    const total = Math.round(amount);
+    if (total < min || total > max || seen.has(total)) return;
+    seen.add(total);
+    presets.push({ id, label, amount: total });
+  };
+
+  if (t.street === 'preflop') {
+    if (t.currentBet <= bb) {
+      add('25bb', '2.5×BB', bb * 2.5);
+      add('3bb', '3×BB', bb * 3);
+      add('min', '最小', min);
+    } else {
+      add('3bet', '3-Bet', t.currentBet * 3);
+      add('4bet', '4-Bet', t.currentBet + t.lastRaiseSize * 2.5);
+      add('min', '最小', min);
+    }
+  } else if (toCall === 0) {
+    add('half', '½池', p.betStreet + t.pot * 0.5);
+    add('pot', '满池', p.betStreet + t.pot);
+    add('min', '最小', min);
+  } else {
+    const potAfterCall = t.pot + toCall;
+    add('half', '½池', p.betStreet + toCall + potAfterCall * 0.5);
+    add('pot', '满池', p.betStreet + toCall + potAfterCall);
+    if (t.currentBet > 0) add('3x', '3×注', t.currentBet * 3);
+    add('min', '最小', min);
+  }
+
+  return presets;
 }
 
 export function applyAction(t, seatId, action, amount = 0) {
