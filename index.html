@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#160a17" />
-  <title>小丑牌 · Joker Cards</title>
+  <title>扑克合集 · 小丑牌 & 德州</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -307,7 +307,105 @@
     <div id="popupLayer" class="popup-layer"></div>
   </div>
 
-  <script type="module" src="./src/game.js"></script>
+  <div id="holdemApp" class="holdem-app mode-hidden">
+    <header class="holdem-top">
+      <button type="button" class="ghost-btn" data-back-hub>主菜单</button>
+      <div class="holdem-brand"><span>♠♥♦♣</span> 德州扑克</div>
+      <button type="button" class="ghost-btn" id="holdemLlmBtn">LLM 配置</button>
+    </header>
+    <div class="holdem-table-wrap">
+      <div class="holdem-felt">
+        <div class="holdem-info-bar">
+          <span id="holdemStreet">翻牌前</span>
+          <span class="holdem-pot-label">底池 <strong id="holdemPot">0</strong></span>
+        </div>
+        <div class="holdem-board" id="holdemBoard"></div>
+        <div class="holdem-seats" id="holdemSeats"></div>
+        <p class="holdem-message" id="holdemMessage"></p>
+      </div>
+    </div>
+    <aside class="holdem-sidebar">
+      <div class="holdem-actions" id="holdemActions">
+        <button type="button" class="btn btn-discard" id="holdemFold" disabled>
+          <span class="btn-main">弃牌</span>
+        </button>
+        <button type="button" class="btn btn-play" id="holdemCheckCall" disabled>
+          <span class="btn-main">过牌</span>
+        </button>
+        <div class="holdem-raise-wrap">
+          <button type="button" class="btn btn-sort" id="holdemRaise" disabled>
+            <span class="btn-main">加注</span>
+          </button>
+          <input type="range" id="holdemRaiseSlider" min="0" max="100" disabled />
+          <span class="holdem-raise-amt" id="holdemRaiseLabel">$0</span>
+        </div>
+        <button type="button" class="btn btn-play hidden" id="holdemNextHand">
+          <span class="btn-main">下一手</span>
+        </button>
+      </div>
+      <div class="holdem-log" id="holdemLog"></div>
+    </aside>
+    <div class="modal hidden" id="holdemEndModal">
+      <div class="modal-card end-card">
+        <h2 id="holdemEndTitle">结束</h2>
+        <p id="holdemEndText"></p>
+        <button type="button" class="btn btn-play" id="holdemRestart">
+          <span class="btn-main">新桌</span>
+        </button>
+        <button type="button" class="ghost-btn" data-back-hub>主菜单</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal hidden" id="llmSettingsModal">
+    <div class="modal-card llm-settings-card">
+      <header class="modal-header">
+        <h2>LLM API 配置</h2>
+        <button type="button" class="close-x" data-close-llm>✕</button>
+      </header>
+      <form id="llmSettingsForm" class="llm-form">
+        <label>
+          <span>服务商</span>
+          <select id="llmProvider" name="provider"></select>
+        </label>
+        <label>
+          <span>API Base URL</span>
+          <input type="url" id="llmBaseUrl" placeholder="https://api.openai.com/v1" autocomplete="off" />
+        </label>
+        <label>
+          <span>模型</span>
+          <input type="text" id="llmModel" placeholder="gpt-4o-mini" autocomplete="off" />
+        </label>
+        <div class="llm-model-hints" id="llmModelHints"></div>
+        <label>
+          <span>API Token / Key</span>
+          <input type="password" id="llmApiKey" placeholder="sk-..." autocomplete="off" />
+        </label>
+        <div class="llm-row-2">
+          <label>
+            <span>Temperature</span>
+            <input type="number" id="llmTemperature" min="0" max="2" step="0.1" value="0.4" />
+          </label>
+          <label>
+            <span>Max tokens</span>
+            <input type="number" id="llmMaxTokens" min="32" max="512" value="120" />
+          </label>
+        </div>
+        <p class="llm-warning">
+          密钥仅存于本机浏览器。部分 API 禁止浏览器跨域调用；若失败可换 <b>OpenRouter</b> 或自建反向代理（填自定义 Base URL）。
+        </p>
+        <footer class="llm-form-footer">
+          <button type="submit" class="btn btn-play">保存</button>
+          <button type="button" class="btn btn-sort" id="llmTestBtn">测试连接</button>
+          <button type="button" class="btn btn-discard" id="llmClearKeyBtn">清除 Token</button>
+        </footer>
+        <p class="llm-status" id="llmSaveStatus"></p>
+        <p class="llm-status" id="llmTestStatus"></p>
+      </form>
+    </div>
+  </div>
+
+  <script type="module" src="./src/main.js"></script>
   <!-- tutorial overlay injected by tutorial.js -->
 </body>
 </html>
