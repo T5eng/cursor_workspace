@@ -11,7 +11,16 @@
 
 **https://t5eng.github.io/cursor_workspace/**
 
+打开后先进入**主菜单**，再选择小丑牌或德州扑克。主菜单与德州内均可打开 **LLM API 配置**。
+
 推送到 `main` 后会自动部署到 `gh-pages` 分支（约 1–2 分钟）。
+
+### LLM 对手（德州）
+
+- 支持 OpenAI 兼容端点：OpenAI、OpenRouter、Groq、DeepSeek、自定义 Base URL
+- 配置保存于 `holdem_llm_config_v1`（localStorage）
+- 填写 Token 后，桌上两个座位会使用 LLM 决策；失败时自动回退规则 Bot
+- **注意**：许多 API 禁止浏览器跨域 (CORS)；推荐 [OpenRouter](https://openrouter.ai/) 或自建反向代理并填「自定义」Base URL
 
 > **首次使用**：若链接 404，请到仓库 [Settings → Pages](https://github.com/T5eng/cursor_workspace/settings/pages)，Source 选 **Deploy from a branch** → 分支 **`gh-pages`** → 目录 **`/ (root)`**。详见 [docs/GITHUB_PAGES_SETUP.md](docs/GITHUB_PAGES_SETUP.md)。
 
