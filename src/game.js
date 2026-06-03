@@ -1278,19 +1278,26 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-// Boot
-wireCodexUI(els);
-tutorialController = new TutorialController(gameApi);
-els.startGameBtn?.addEventListener('click', startNormalRun);
-els.resumeRunBtn?.addEventListener('click', resumeSavedRun);
-els.startTutorialBtn?.addEventListener('click', startTutorial);
-els.resumeTutorialBtn?.addEventListener('click', startTutorial);
-window.addEventListener('beforeunload', () => persistRunNow());
-window.addEventListener('pagehide', () => persistRunNow());
-els.openTutorialBtn?.addEventListener('click', () => {
-  closeAllModals();
-  const inProgress = els.welcomeModal.classList.contains('hidden') &&
-    run.phase !== 'gameover' && run.phase !== 'win';
-  startTutorial({ saveProgress: inProgress && !run.isTutorial });
-});
-showWelcome();
+let balatroWired = false;
+
+/** Called from main hub when user picks 小丑牌 */
+export function bootBalatro() {
+  if (!balatroWired) {
+    wireCodexUI(els);
+    tutorialController = new TutorialController(gameApi);
+    els.startGameBtn?.addEventListener('click', startNormalRun);
+    els.resumeRunBtn?.addEventListener('click', resumeSavedRun);
+    els.startTutorialBtn?.addEventListener('click', startTutorial);
+    els.resumeTutorialBtn?.addEventListener('click', startTutorial);
+    window.addEventListener('beforeunload', () => persistRunNow());
+    window.addEventListener('pagehide', () => persistRunNow());
+    els.openTutorialBtn?.addEventListener('click', () => {
+      closeAllModals();
+      const inProgress = els.welcomeModal.classList.contains('hidden') &&
+        run.phase !== 'gameover' && run.phase !== 'win';
+      startTutorial({ saveProgress: inProgress && !run.isTutorial });
+    });
+    balatroWired = true;
+  }
+  showWelcome();
+}
