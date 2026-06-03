@@ -1,6 +1,6 @@
 // App hub: Balatro vs Texas Hold'em
 
-import { wireLlmSettings, openLlmSettings } from './holdem/llm-settings.js';
+import { wireLlmSettings, openLlmSettings, closeLlmSettings } from './holdem/llm-settings.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -79,7 +79,13 @@ wireLlmSettings({
 });
 
 document.querySelectorAll('[data-close-llm]').forEach(btn => {
-  btn.addEventListener('click', () => $('llmSettingsModal')?.classList.add('hidden'));
+  btn.addEventListener('click', closeLlmSettings);
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !$('llmSettingsModal')?.classList.contains('hidden')) {
+    closeLlmSettings();
+  }
 });
 
 wireHub();

@@ -1,6 +1,6 @@
 import {
   PROVIDERS, PERSONALITIES, providerById, personalityById,
-  loadLlmConfig, saveLlmConfig, defaultConfig
+  loadLlmConfig, saveLlmConfig
 } from './llm-config.js';
 import { chatCompletion } from './llm-client.js';
 
@@ -8,13 +8,18 @@ let els = null;
 
 export function wireLlmSettings(dom) {
   els = dom;
+  if (els.llmSettingsModal && els.llmSettingsModal.parentElement !== document.body) {
+    document.body.appendChild(els.llmSettingsModal);
+  }
   fillProviderSelect();
   fillPersonalitySelect();
   els.llmSettingsForm?.addEventListener('submit', (e) => {
     e.preventDefault();
     persistFromForm();
-    els.llmSaveStatus.textContent = '已保存到本浏览器';
-    setTimeout(() => { els.llmSaveStatus.textContent = ''; }, 2500);
+    if (els.llmSaveStatus) {
+      els.llmSaveStatus.textContent = '已保存到本浏览器';
+      setTimeout(() => { els.llmSaveStatus.textContent = ''; }, 2500);
+    }
   });
   els.llmProvider?.addEventListener('change', onProviderChange);
   els.llmPersonality?.addEventListener('change', onPersonalityChange);
@@ -22,19 +27,22 @@ export function wireLlmSettings(dom) {
   els.llmClearKeyBtn?.addEventListener('click', () => {
     if (els.llmApiKey) els.llmApiKey.value = '';
     persistFromForm();
-    els.llmSaveStatus.textContent = '已清除 Token';
+    if (els.llmSaveStatus) els.llmSaveStatus.textContent = '已清除 Token';
+  });
+  els.llmSettingsModal?.addEventListener('click', (e) => {
+    if (e.target === els.llmSettingsModal) closeLlmSettings();
   });
 }
 
 function fillProviderSelect() {
-  if (!els.llmProvider) return;
+  if (!els?.llmProvider) return;
   els.llmProvider.innerHTML = PROVIDERS.map(p =>
     `<option value="${p.id}">${p.label}</option>`
   ).join('');
 }
 
 function fillPersonalitySelect() {
-  if (!els.llmPersonality) return;
+  if (!els?.llmPersonality) return;
   els.llmPersonality.innerHTML = PERSONALITIES.map(p =>
     `<option value="${p.id}">${p.label}</option>`
   ).join('');
@@ -50,17 +58,13 @@ function onProviderChange() {
 }
 
 function onPersonalityChange() {
-  const p = personalityById(els.llmPersonality.value);
-  if (els.llmPersonalityCustom) {
-    els.llmPersonalityCustom.closest('label')?.classList.toggle(
-      'hidden',
-      p.id !== 'custom'
-    );
-  }
+  const p = personalityById(els.llmPersonality?.value || 'tag');
+  const wrap = els.llmPersonalityCustom?.closest('label');
+  if (wrap) wrap.classList.toggle('hidden', p.id !== 'custom');
 }
 
 function renderModelHints(p) {
-  if (!els.llmModelHints) return;
+  if (!els?.llmModelHints) return;
   if (!p.models?.length) {
     els.llmModelHints.textContent = '自定义端点请自行填写模型 ID';
     return;
@@ -76,6 +80,7 @@ function renderModelHints(p) {
 }
 
 function persistFromForm() {
+  if (!els?.llmProvider) return;
   const cfg = {
     providerId: els.llmProvider.value,
     baseUrl: els.llmBaseUrl.value.trim(),
@@ -90,6 +95,7 @@ function persistFromForm() {
 }
 
 export function loadFormFromStorage() {
+  if (!els?.llmProvider) return;
   const cfg = loadLlmConfig();
   els.llmProvider.value = cfg.providerId;
   els.llmBaseUrl.value = cfg.baseUrl || providerById(cfg.providerId).defaultBaseUrl;
@@ -106,17 +112,28 @@ export function loadFormFromStorage() {
 }
 
 export function openLlmSettings() {
+  if (!els?.llmSettingsModal) {
+    console.warn('LLM settings modal element not found');
+    return;
+  }
   loadFormFromStorage();
   els.llmSettingsModal.classList.remove('hidden');
+  els.llmSettingsModal.setAttribute('aria-hidden', 'false');
+  requestAnimationFrame(() => {
+    els.llmApiKey?.focus();
+  });
 }
 
 export function closeLlmSettings() {
+  if (!els?.llmSettingsModal) return;
   els.llmSettingsModal.classList.add('hidden');
+  els.llmSettingsModal.setAttribute('aria-hidden', 'true');
 }
 
 async function testConnection() {
   persistFromForm();
   const cfg = loadLlmConfig();
+  if (!els.llmTestStatus) return;
   els.llmTestStatus.textContent = '测试中…';
   try {
     const out = await chatCompletion(cfg, [
