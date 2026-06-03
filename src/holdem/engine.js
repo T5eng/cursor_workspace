@@ -109,6 +109,16 @@ function firstToActPostflop(t) {
   return nextSeat(t, t.sbSeat - 1, p => canAct(p));
 }
 
+export function seatPositionLabel(t, seatIndex) {
+  const n = t.players.length;
+  if (seatIndex < 0 || seatIndex >= n) return '';
+  if (n === 2) {
+    return seatIndex === t.dealerIndex ? 'SB/庄' : 'BB';
+  }
+  const rel = (seatIndex - t.dealerIndex + n) % n;
+  return ['庄', '小盲', '大盲', '枪口', '中位', '关煞'][rel] ?? '';
+}
+
 export function computeBlindSeats(t) {
   const n = t.players.length;
   const sbSeat = n === 2 ? t.dealerIndex : nextSeat(t, t.dealerIndex, p => p.stack > 0);
@@ -285,15 +295,18 @@ export function startHand(t) {
   t.lastRaiseSize = t.bigBlind;
 
   for (const p of t.players) {
-    if (p.betStreet >= t.currentBet) p.actedSinceRaise = true;
+    p.actedSinceRaise = false;
   }
-  t.players[bbSeat].actedSinceRaise = false;
 
   t.actorIndex = firstToActPreflop(t);
   if (n === 2) {
     t.players[t.dealerIndex].actedSinceRaise = false;
   }
-  t.message = `第 ${t.handNumber} 手 · ${t.street}`;
+  if (n === 2) {
+    t.message = `第 ${t.handNumber} 手 · 翻牌前 · 小盲先行动 · 盲注 ${t.smallBlind}/${t.bigBlind}`;
+  } else {
+    t.message = `第 ${t.handNumber} 手 · 翻牌前 · 枪口先行动 · 盲注 ${t.smallBlind}/${t.bigBlind}`;
+  }
   return true;
 }
 
@@ -448,6 +461,8 @@ export function publicState(t, viewerSeat = 0) {
     currentBet: t.currentBet,
     actorIndex: t.actorIndex,
     dealerIndex: t.dealerIndex,
+    sbSeat: t.sbSeat,
+    bbSeat: t.bbSeat,
     message: t.message,
     winners: t.winners,
     smallBlind: t.smallBlind,

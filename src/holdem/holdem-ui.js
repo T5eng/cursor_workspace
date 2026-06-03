@@ -1,7 +1,7 @@
 // Texas Hold'em UI — 6-max / heads-up, save, LLM opponents
 
 import {
-  createPlayer, createTable, startHand, applyAction, publicState, getLegalActions, getRaisePresets
+  createPlayer, createTable, startHand, applyAction, publicState, getLegalActions, getRaisePresets, seatPositionLabel
 } from './engine.js';
 import { decideBotAction } from './llm-bot.js';
 import { describeRank } from './hand-rank.js';
@@ -268,10 +268,13 @@ function renderSeats(view) {
     if (view.actorIndex === i && view.phase === 'betting') wrap.classList.add('acting');
     if (p.folded) wrap.classList.add('folded');
     if (view.dealerIndex === i) wrap.classList.add('dealer');
+    if (view.sbSeat === i) wrap.classList.add('sb');
+    if (view.bbSeat === i) wrap.classList.add('bb');
 
     const name = document.createElement('div');
     name.className = 'holdem-seat-name';
-    name.textContent = p.name + (p.botType === 'llm' ? ' 🤖' : '');
+    const posTag = table ? seatPositionLabel(table, i) : '';
+    name.textContent = (posTag ? `[${posTag}] ` : '') + p.name + (p.botType === 'llm' ? ' 🤖' : '');
 
     const stack = document.createElement('div');
     stack.className = 'holdem-seat-stack';
