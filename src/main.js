@@ -8,6 +8,7 @@ let balatroBooted = false;
 let holdemBooted = false;
 
 function showHub() {
+  document.documentElement.classList.remove('holdem-active');
   $('hubScreen')?.classList.remove('hidden');
   $('app')?.classList.add('mode-hidden');
   $('holdemApp')?.classList.add('mode-hidden');
@@ -36,6 +37,7 @@ async function enterHoldem() {
   hideHub();
   $('app')?.classList.add('mode-hidden');
   $('holdemApp')?.classList.remove('mode-hidden');
+  document.documentElement.classList.add('holdem-active');
   document.title = '德州扑克 · Texas Hold\'em';
   if (!holdemBooted) {
     const { bootHoldem } = await import('./holdem/holdem-ui.js');

@@ -2223,8 +2223,11 @@ body.tutorial-active #jokerRow {
     padding-bottom: max(8px, env(safe-area-inset-bottom));
   }
   .holdem-game-wrap {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr auto;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
     gap: 8px;
   }
   .holdem-top {
@@ -2365,21 +2368,104 @@ body.tutorial-active #jokerRow {
 .holdem-setup-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
 .holdem-game-wrap {
   display: grid;
-  grid-template-rows: auto 1fr;
   grid-template-columns: 1fr 280px;
+  grid-template-rows: auto 1fr;
   grid-column: 1 / -1;
   gap: 12px;
   min-height: 0;
   flex: 1;
 }
-.holdem-game-wrap.hidden { display: none !important; }
-.holdem-app {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  padding: 12px 16px;
-  box-sizing: border-box;
+.holdem-game-wrap > .holdem-top {
+  grid-column: 1 / -1;
+  grid-row: 1;
 }
+.holdem-game-wrap > .holdem-table-wrap {
+  grid-column: 1;
+  grid-row: 2;
+  min-height: 0;
+}
+.holdem-game-wrap > .holdem-sidebar {
+  grid-column: 2;
+  grid-row: 2;
+  min-height: 0;
+}
+.holdem-game-wrap.hidden { display: none !important; }
+
+/* Mobile portrait: single column, fit within viewport */
+@media (max-width: 768px) and (orientation: portrait) {
+  .holdem-app {
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    overflow: hidden !important;
+    padding: 6px 8px;
+    padding-bottom: max(6px, env(safe-area-inset-bottom));
+    box-sizing: border-box;
+  }
+  .holdem-game-wrap {
+    display: flex !important;
+    flex-direction: column !important;
+    grid-template-columns: unset !important;
+    grid-template-rows: unset !important;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    gap: 6px;
+  }
+  .holdem-game-wrap > .holdem-top {
+    flex-shrink: 0;
+    grid-column: unset;
+    grid-row: unset;
+  }
+  .holdem-game-wrap > .holdem-table-wrap {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    grid-column: unset;
+    grid-row: unset;
+  }
+  .holdem-game-wrap > .holdem-sidebar {
+    flex: 0 0 auto;
+    grid-column: unset;
+    grid-row: unset;
+    max-height: min(42dvh, 320px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .holdem-felt {
+    flex: 1 1 auto;
+    width: 100%;
+    min-height: 0 !important;
+    max-height: 100% !important;
+    aspect-ratio: 4 / 3;
+    height: auto;
+  }
+  .holdem-hero-hand {
+    flex: 0 0 auto;
+  }
+  .holdem-log {
+    max-height: 48px;
+  }
+}
+
+@media (max-width: 768px) and (orientation: landscape) {
+  .holdem-game-wrap {
+    display: grid !important;
+    grid-template-columns: 1fr min(240px, 38vw) !important;
+    grid-template-rows: auto 1fr !important;
+  }
+  .holdem-game-wrap > .holdem-top { grid-column: 1 / -1; }
+  .holdem-game-wrap > .holdem-table-wrap { grid-column: 1; grid-row: 2; }
+  .holdem-game-wrap > .holdem-sidebar { grid-column: 2; grid-row: 2; }
+  .holdem-felt {
+    max-height: 55dvh;
+  }
+}
+
 .holdem-app .holdem-top { flex-shrink: 0; }
 .holdem-heads-up .holdem-seat.seat-1,
 .holdem-heads-up .holdem-seat.seat-2,
@@ -2393,3 +2479,5 @@ body.tutorial-active #jokerRow {
 }
 .llm-personality-custom-wrap.hidden { display: none !important; }
 .hidden { display: none !important; }
+
+html.holdem-active, html.holdem-active body { overflow: hidden; height: 100%; }
