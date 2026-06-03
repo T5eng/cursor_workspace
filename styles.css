@@ -2199,12 +2199,27 @@ body.tutorial-active #jokerRow {
   border-radius: 12px;
   border: 1px solid rgba(245, 197, 74, 0.15);
 }
+.holdem-actions-primary {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+.holdem-actions-primary .btn {
+  min-height: 42px;
+  padding: 8px 6px;
+}
+.holdem-actions-primary .btn-main {
+  font-size: 15px;
+}
+.holdem-next-hand {
+  width: 100%;
+}
 
 .holdem-raise-presets {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-bottom: 8px;
+  margin-bottom: 0;
 }
 .holdem-raise-presets.hidden { display: none; }
 .holdem-preset-btn {
@@ -2230,8 +2245,13 @@ body.tutorial-active #jokerRow {
 }
 .holdem-raise-wrap {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+.holdem-raise-wrap input[type="range"] {
+  flex: 1;
+  min-width: 0;
 }
 .holdem-raise-amt {
   font-family: var(--mono);
@@ -2446,12 +2466,61 @@ body.tutorial-active #jokerRow {
   .holdem-sidebar {
     max-height: none;
     flex-shrink: 0;
+    gap: 6px;
+  }
+  .holdem-actions {
+    gap: 5px;
+    padding: 8px;
+  }
+  .holdem-actions-primary {
+    gap: 5px;
+  }
+  .holdem-actions-primary .btn,
+  .holdem-next-hand {
+    min-height: 38px;
+    padding: 6px 4px;
+  }
+  .holdem-actions-primary .btn-main {
+    font-size: 13px;
+  }
+  .holdem-raise-presets {
+    gap: 4px;
+  }
+  .holdem-preset-btn {
+    padding: 4px 6px;
+    font-size: 10px;
+    min-width: 3.2em;
+  }
+  .holdem-raise-wrap {
+    gap: 6px;
+  }
+  .holdem-raise-amt {
+    font-size: 13px;
+    flex-shrink: 0;
+    min-width: 3.5em;
+    text-align: right;
   }
   .holdem-log {
-    max-height: 72px;
+    max-height: 40px;
+    padding: 6px 8px;
+    font-size: 10px;
   }
-  .holdem-actions .btn {
-    min-height: 44px;
+  .holdem-table-wrap {
+    flex: 1 1 0;
+    min-height: 52dvh;
+  }
+  .holdem-felt {
+    flex: 1 1 auto;
+    min-height: 220px;
+    aspect-ratio: unset;
+  }
+  .holdem-hero-hand {
+    min-height: 52px;
+    padding: 4px 0 0;
+  }
+  .holdem-hero-hand .holdem-card {
+    width: 46px;
+    height: 64px;
   }
 }
 
@@ -2553,7 +2622,7 @@ body.tutorial-active #jokerRow {
     flex: 1 1 auto;
     min-height: 0;
     overflow: hidden;
-    gap: 6px;
+    gap: 4px;
   }
   .holdem-game-wrap > .holdem-top {
     flex-shrink: 0;
@@ -2561,7 +2630,7 @@ body.tutorial-active #jokerRow {
     grid-row: unset;
   }
   .holdem-game-wrap > .holdem-table-wrap {
-    flex: 1 1 auto;
+    flex: 1 1 0;
     min-height: 0;
     max-height: none;
     overflow: hidden;
@@ -2574,17 +2643,17 @@ body.tutorial-active #jokerRow {
     flex: 0 0 auto;
     grid-column: unset;
     grid-row: unset;
-    max-height: min(42dvh, 320px);
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
+    max-height: none;
+    overflow: visible;
+    gap: 4px;
   }
   .holdem-felt {
     flex: 1 1 auto;
     width: 100%;
     min-height: 0 !important;
-    max-height: 100% !important;
-    aspect-ratio: 4 / 3;
-    height: auto;
+    max-height: none !important;
+    aspect-ratio: unset;
+    height: 100%;
   }
   .holdem-board-zone {
     top: 24%;
@@ -2626,7 +2695,37 @@ body.tutorial-active #jokerRow {
     flex: 0 0 auto;
   }
   .holdem-log {
-    max-height: 48px;
+    max-height: 32px;
+    flex-shrink: 0;
+  }
+  .holdem-actions {
+    padding: 5px 6px;
+    gap: 4px;
+  }
+  .holdem-actions-primary .btn,
+  .holdem-next-hand {
+    min-height: 36px;
+  }
+  .holdem-actions-primary .btn-main {
+    font-size: 12px;
+  }
+  .holdem-top {
+    padding-bottom: 0;
+  }
+  .holdem-top .ghost-btn {
+    padding: 4px 6px;
+    font-size: 10px;
+  }
+  .holdem-brand {
+    font-size: 14px;
+  }
+  .holdem-hero-hand {
+    min-height: 46px;
+    padding: 2px 0 0;
+  }
+  .holdem-hero-hand .holdem-card {
+    width: 42px;
+    height: 58px;
   }
 }
 

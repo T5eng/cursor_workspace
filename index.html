@@ -355,21 +355,23 @@
     </div>
     <aside class="holdem-sidebar">
       <div class="holdem-actions" id="holdemActions">
-        <button type="button" class="btn btn-discard" id="holdemFold" disabled>
-          <span class="btn-main">弃牌</span>
-        </button>
-        <button type="button" class="btn btn-play" id="holdemCheckCall" disabled>
-          <span class="btn-main">过牌</span>
-        </button>
-        <div class="holdem-raise-presets hidden" id="holdemRaisePresets"></div>
-        <div class="holdem-raise-wrap">
+        <div class="holdem-actions-primary">
+          <button type="button" class="btn btn-discard" id="holdemFold" disabled>
+            <span class="btn-main">弃牌</span>
+          </button>
+          <button type="button" class="btn btn-play" id="holdemCheckCall" disabled>
+            <span class="btn-main">过牌</span>
+          </button>
           <button type="button" class="btn btn-sort" id="holdemRaise" disabled>
             <span class="btn-main">加注</span>
           </button>
+        </div>
+        <div class="holdem-raise-presets hidden" id="holdemRaisePresets"></div>
+        <div class="holdem-raise-wrap">
           <input type="range" id="holdemRaiseSlider" min="0" max="100" disabled />
           <span class="holdem-raise-amt" id="holdemRaiseLabel">$0</span>
         </div>
-        <button type="button" class="btn btn-play hidden" id="holdemNextHand">
+        <button type="button" class="btn btn-play holdem-next-hand hidden" id="holdemNextHand">
           <span class="btn-main">下一手</span>
         </button>
       </div>
