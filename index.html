@@ -341,11 +341,13 @@
     </header>
     <div class="holdem-table-wrap">
       <div class="holdem-felt">
-        <div class="holdem-info-bar">
-          <span id="holdemStreet">翻牌前</span>
-          <span class="holdem-pot-label">底池 <strong id="holdemPot">0</strong></span>
+        <div class="holdem-board-zone" aria-label="公共牌与底池">
+          <div class="holdem-info-bar">
+            <span id="holdemStreet">翻牌前</span>
+            <span class="holdem-pot-label">底池 <strong id="holdemPot">0</strong></span>
+          </div>
+          <div class="holdem-board" id="holdemBoard"></div>
         </div>
-        <div class="holdem-board" id="holdemBoard"></div>
         <div class="holdem-seats" id="holdemSeats"></div>
         <p class="holdem-message" id="holdemMessage"></p>
       </div>

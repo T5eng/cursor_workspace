@@ -302,9 +302,13 @@ function beginHand() {
   scheduleBots();
 }
 
+function formatChips(n) {
+  return Number(n).toLocaleString('en-US');
+}
+
 function render() {
   const view = publicState(table, humanSeat);
-  els.pot.textContent = String(table.pot);
+  els.pot.textContent = formatChips(table.pot);
   els.street.textContent = streetLabel(view.street);
   els.message.textContent = view.message;
   renderBoard(view.board);
@@ -375,11 +379,11 @@ function renderSeats(view) {
 
     const stack = document.createElement('div');
     stack.className = 'holdem-seat-stack';
-    stack.textContent = `$${p.stack}`;
+    stack.textContent = `$${formatChips(p.stack)}`;
 
     const bet = document.createElement('div');
     bet.className = 'holdem-seat-bet';
-    if (p.betStreet > 0) bet.textContent = `下注 $${p.betStreet}`;
+    if (p.betStreet > 0) bet.textContent = `+$${formatChips(p.betStreet)}`;
 
     const holes = document.createElement('div');
     holes.className = 'holdem-hole';
