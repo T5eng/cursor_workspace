@@ -1,7 +1,7 @@
 // Hold'em table persistence (localStorage)
 
 import { cardToJSON, cardFromJSON } from '../run-save.js';
-import { createPlayer, createTable } from './engine.js';
+import { createPlayer, createTable, computeBlindSeats } from './engine.js';
 
 export const HOLDEM_SAVE_KEY = 'holdem_save_v1';
 
@@ -18,6 +18,8 @@ export function serializeTable(table, meta) {
     smallBlind: table.smallBlind,
     bigBlind: table.bigBlind,
     dealerIndex: table.dealerIndex,
+    sbSeat: table.sbSeat,
+    bbSeat: table.bbSeat,
     handNumber: table.handNumber,
     street: table.street,
     phase: table.phase,
@@ -83,6 +85,12 @@ export function deserializeTable(data) {
   table.message = data.message;
   table.winners = data.winners;
   table.showdownRanks = null;
+  if (data.sbSeat != null && data.bbSeat != null) {
+    table.sbSeat = data.sbSeat;
+    table.bbSeat = data.bbSeat;
+  } else {
+    computeBlindSeats(table);
+  }
   return { table, meta: data.meta };
 }
 
