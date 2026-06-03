@@ -119,9 +119,7 @@ export function openLlmSettings() {
   loadFormFromStorage();
   els.llmSettingsModal.classList.remove('hidden');
   els.llmSettingsModal.setAttribute('aria-hidden', 'false');
-  requestAnimationFrame(() => {
-    els.llmApiKey?.focus();
-  });
+  requestAnimationFrame(() => els.llmApiKey?.focus());
 }
 
 export function closeLlmSettings() {
