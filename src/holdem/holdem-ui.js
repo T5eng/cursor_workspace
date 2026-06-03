@@ -63,7 +63,11 @@ export function bootHoldem(rootEl) {
     appendLog('已手动保存牌局');
     els.message.textContent = '牌局已保存';
   });
-  els.llmBtn?.addEventListener('click', openLlmSettings);
+  els.llmBtn?.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    openLlmSettings();
+  });
   els.restartBtn?.addEventListener('click', () => {
     els.endModal?.classList.add('hidden');
     showSetup();

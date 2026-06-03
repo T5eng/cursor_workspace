@@ -19,6 +19,7 @@ function hideHub() {
 }
 
 async function enterBalatro() {
+  closeLlmSettings();
   hideHub();
   $('app')?.classList.remove('mode-hidden');
   $('holdemApp')?.classList.add('mode-hidden');
@@ -31,6 +32,7 @@ async function enterBalatro() {
 }
 
 async function enterHoldem() {
+  closeLlmSettings();
   hideHub();
   $('app')?.classList.add('mode-hidden');
   $('holdemApp')?.classList.remove('mode-hidden');
@@ -42,20 +44,39 @@ async function enterHoldem() {
   }
 }
 
+function onHubClick(e) {
+  const llmBtn = e.target.closest('#hubLlmBtn');
+  if (llmBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+    openLlmSettings();
+    return;
+  }
+  if (e.target.closest('#hubBalatroBtn')) {
+    e.preventDefault();
+    enterBalatro();
+    return;
+  }
+  if (e.target.closest('#hubHoldemBtn')) {
+    e.preventDefault();
+    enterHoldem();
+  }
+}
+
 function wireHub() {
-  $('hubBalatroBtn')?.addEventListener('click', enterBalatro);
-  $('hubHoldemBtn')?.addEventListener('click', enterHoldem);
-  $('hubLlmBtn')?.addEventListener('click', openLlmSettings);
+  $('hubScreen')?.addEventListener('click', onHubClick);
 
   document.querySelectorAll('[data-back-hub]').forEach(btn => {
     btn.addEventListener('click', () => {
       holdemBooted = false;
+      closeLlmSettings();
       showHub();
     });
   });
 
   window.addEventListener('app:back-hub', () => {
     holdemBooted = false;
+    closeLlmSettings();
     showHub();
   });
 }
@@ -79,7 +100,10 @@ wireLlmSettings({
 });
 
 document.querySelectorAll('[data-close-llm]').forEach(btn => {
-  btn.addEventListener('click', closeLlmSettings);
+  btn.addEventListener('click', (e) => {
+    e.preventDefault();
+    closeLlmSettings();
+  });
 });
 
 document.addEventListener('keydown', (e) => {

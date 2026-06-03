@@ -6,11 +6,17 @@ import { chatCompletion } from './llm-client.js';
 
 let els = null;
 
+function ensureModalOnBody() {
+  const modal = els?.llmSettingsModal;
+  if (!modal) return;
+  if (modal.parentElement !== document.body) {
+    document.body.appendChild(modal);
+  }
+}
+
 export function wireLlmSettings(dom) {
   els = dom;
-  if (els.llmSettingsModal && els.llmSettingsModal.parentElement !== document.body) {
-    document.body.appendChild(els.llmSettingsModal);
-  }
+  ensureModalOnBody();
   fillProviderSelect();
   fillPersonalitySelect();
   els.llmSettingsForm?.addEventListener('submit', (e) => {
@@ -81,7 +87,7 @@ function renderModelHints(p) {
 
 function persistFromForm() {
   if (!els?.llmProvider) return;
-  const cfg = {
+  saveLlmConfig({
     providerId: els.llmProvider.value,
     baseUrl: els.llmBaseUrl.value.trim(),
     model: els.llmModel.value.trim(),
@@ -90,8 +96,7 @@ function persistFromForm() {
     maxTokens: Number(els.llmMaxTokens.value) || 120,
     personalityId: els.llmPersonality?.value || 'tag',
     personalityCustom: els.llmPersonalityCustom?.value?.trim() || ''
-  };
-  saveLlmConfig(cfg);
+  });
 }
 
 export function loadFormFromStorage() {
@@ -113,12 +118,14 @@ export function loadFormFromStorage() {
 
 export function openLlmSettings() {
   if (!els?.llmSettingsModal) {
-    console.warn('LLM settings modal element not found');
+    console.warn('LLM settings modal not found');
     return;
   }
+  ensureModalOnBody();
   loadFormFromStorage();
   els.llmSettingsModal.classList.remove('hidden');
   els.llmSettingsModal.setAttribute('aria-hidden', 'false');
+  document.body.classList.add('llm-modal-open');
   requestAnimationFrame(() => els.llmApiKey?.focus());
 }
 
@@ -126,6 +133,7 @@ export function closeLlmSettings() {
   if (!els?.llmSettingsModal) return;
   els.llmSettingsModal.classList.add('hidden');
   els.llmSettingsModal.setAttribute('aria-hidden', 'true');
+  document.body.classList.remove('llm-modal-open');
 }
 
 async function testConnection() {

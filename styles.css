@@ -806,12 +806,14 @@ body {
   backdrop-filter: blur(6px);
   animation: fadeIn 200ms ease;
 }
-
-/* Above hub (200) and in-game overlays */
-#llmSettingsModal {
-  z-index: 500;
-}
 .modal.hidden { display: none; }
+
+#llmSettingsModal {
+  z-index: 2000;
+}
+body.llm-modal-open .hub-screen {
+  pointer-events: none;
+}
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
 .modal-card {
@@ -1882,3 +1884,390 @@ body.tutorial-active #jokerRow {
   position: relative;
   z-index: auto;
 }
+
+/* ---------- Hub & mode switch ---------- */
+.mode-hidden {
+  display: none !important;
+}
+
+.hub-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background:
+    radial-gradient(1000px 700px at 50% 20%, rgba(255, 90, 170, 0.12), transparent 55%),
+    linear-gradient(180deg, var(--bg-1), var(--bg-0));
+}
+.hub-screen.hidden {
+  display: none !important;
+}
+
+.hub-card {
+  max-width: 420px;
+  width: 100%;
+  text-align: center;
+  padding: 32px 28px 28px;
+  border-radius: 18px;
+  border: 1px solid rgba(245, 197, 74, 0.25);
+  background: linear-gradient(180deg, #2a1029, #1a0820);
+  box-shadow: var(--shadow-deep);
+}
+.hub-mark {
+  font-size: 36px;
+  letter-spacing: 0.2em;
+}
+.hub-title {
+  margin: 12px 0 6px;
+  font-size: 32px;
+  font-weight: 900;
+  color: var(--gold);
+}
+.hub-tagline {
+  color: var(--ink-dim);
+  font-size: 14px;
+  margin: 0 0 24px;
+  line-height: 1.5;
+}
+.hub-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.hub-game-btn {
+  width: 100%;
+}
+.hub-llm-btn {
+  margin-top: 16px;
+  width: 100%;
+}
+.hub-hint {
+  margin-top: 16px;
+  font-size: 12px;
+  color: var(--ink-dim);
+  line-height: 1.5;
+}
+
+/* ---------- Texas Hold'em ---------- */
+.holdem-app {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  grid-template-columns: 1fr 280px;
+  height: 100vh;
+  padding: 12px 16px;
+  gap: 12px;
+  box-sizing: border-box;
+}
+.holdem-top {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.holdem-brand {
+  font-weight: 900;
+  font-size: 20px;
+  color: var(--gold);
+  letter-spacing: 0.08em;
+}
+.holdem-table-wrap {
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.holdem-felt {
+  position: relative;
+  width: min(100%, 720px);
+  aspect-ratio: 4/3;
+  max-height: 70vh;
+  border-radius: 50% / 42%;
+  background:
+    radial-gradient(ellipse at 50% 40%, rgba(255, 80, 150, 0.08), transparent 50%),
+    linear-gradient(180deg, var(--felt-1), var(--felt-0));
+  border: 3px solid rgba(245, 197, 74, 0.2);
+  box-shadow: var(--shadow-deep), inset 0 0 60px rgba(0, 0, 0, 0.4);
+}
+.holdem-info-bar {
+  position: absolute;
+  top: 12%;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 20px;
+  font-family: var(--mono);
+  font-size: 14px;
+  color: var(--ink);
+}
+.holdem-pot-label strong {
+  color: var(--gold);
+}
+.holdem-board {
+  position: absolute;
+  top: 38%;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+}
+.holdem-board .slot.empty {
+  width: 52px;
+  height: 74px;
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+}
+.holdem-seats {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.holdem-seat {
+  position: absolute;
+  width: 120px;
+  text-align: center;
+  font-size: 12px;
+  transition: box-shadow 0.2s;
+}
+.holdem-seat.acting {
+  filter: drop-shadow(0 0 8px var(--gold));
+}
+.holdem-seat.folded {
+  opacity: 0.45;
+}
+.holdem-seat.dealer::after {
+  content: 'D';
+  position: absolute;
+  top: -8px;
+  right: 0;
+  width: 18px;
+  height: 18px;
+  line-height: 18px;
+  border-radius: 50%;
+  background: var(--gold);
+  color: #1a0820;
+  font-size: 10px;
+  font-weight: 900;
+}
+.holdem-seat.seat-0 { bottom: 4%; left: 50%; transform: translateX(-50%); }
+.holdem-seat.seat-1 { bottom: 22%; left: 8%; }
+.holdem-seat.seat-2 { top: 28%; left: 8%; }
+.holdem-seat.seat-3 { top: 4%; left: 50%; transform: translateX(-50%); }
+.holdem-seat.seat-4 { top: 28%; right: 8%; }
+.holdem-seat.seat-5 { bottom: 22%; right: 8%; }
+.holdem-seat-name { font-weight: 700; color: var(--ink); }
+.holdem-seat-stack { font-family: var(--mono); color: var(--gold); }
+.holdem-seat-bet { color: var(--red); font-size: 11px; }
+.holdem-hole {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  margin-top: 4px;
+}
+.holdem-card {
+  width: 48px;
+  height: 68px;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  box-shadow: var(--shadow-soft);
+}
+.holdem-card.face {
+  background: linear-gradient(180deg, #fff9ee, #e8dcc8);
+  border: 1px solid #c4b59a;
+}
+.holdem-card.face.red { color: var(--red); }
+.holdem-card.face.black { color: #1a1a2e; }
+.holdem-card.back {
+  background: linear-gradient(135deg, #2a1531, #160a17);
+  border: 1px solid var(--gold-deep);
+  color: var(--gold);
+  font-size: 22px;
+}
+.holdem-message {
+  position: absolute;
+  bottom: 8%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-dim);
+  max-width: 90%;
+  text-align: center;
+}
+.holdem-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+.holdem-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 12px;
+  border: 1px solid rgba(245, 197, 74, 0.15);
+}
+.holdem-raise-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.holdem-raise-amt {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--gold);
+}
+.holdem-log {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+  font-size: 11px;
+  font-family: var(--mono);
+  color: var(--ink-dim);
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.holdem-log-line {
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+
+/* LLM settings */
+.llm-settings-card {
+  max-width: 480px;
+  width: 95vw;
+}
+.llm-form label {
+  display: block;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+.llm-form label span {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--ink-dim);
+  font-family: var(--mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.llm-form input,
+.llm-form select {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(245, 197, 74, 0.25);
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 13px;
+}
+.llm-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.llm-model-hints {
+  margin: -4px 0 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--ink-dim);
+}
+.chip-btn {
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(245, 197, 74, 0.3);
+  background: rgba(245, 197, 74, 0.08);
+  color: var(--gold);
+  font-size: 10px;
+  cursor: pointer;
+}
+.llm-warning {
+  font-size: 12px;
+  color: var(--ink-dim);
+  line-height: 1.5;
+  margin: 8px 0 12px;
+}
+.llm-form-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.llm-status {
+  font-size: 12px;
+  color: var(--green);
+  min-height: 1.2em;
+}
+.llm-status.err {
+  color: var(--red);
+}
+
+@media (max-width: 768px) {
+  .holdem-app {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto 1fr auto;
+  }
+  .holdem-sidebar {
+    max-height: 200px;
+  }
+  .holdem-felt {
+    max-height: 50vh;
+  }
+}
+
+/* Hold'em setup & heads-up */
+.holdem-setup-card { max-width: 400px; }
+.holdem-setup-body label { display: block; margin-bottom: 12px; font-size: 13px; }
+.holdem-setup-body label span {
+  display: block; margin-bottom: 4px; color: var(--ink-dim);
+  font-family: var(--mono); font-size: 11px; text-transform: uppercase;
+}
+.holdem-setup-body select {
+  width: 100%; padding: 8px; border-radius: 8px;
+  border: 1px solid rgba(245, 197, 74, 0.25);
+  background: rgba(0,0,0,0.35); color: var(--ink);
+}
+.holdem-setup-hint { font-size: 12px; color: var(--ink-dim); line-height: 1.5; }
+.holdem-setup-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.holdem-game-wrap {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  grid-template-columns: 1fr 280px;
+  grid-column: 1 / -1;
+  gap: 12px;
+  min-height: 0;
+  flex: 1;
+}
+.holdem-game-wrap.hidden { display: none !important; }
+.holdem-app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  padding: 12px 16px;
+  box-sizing: border-box;
+}
+.holdem-app .holdem-top { flex-shrink: 0; }
+.holdem-heads-up .holdem-seat.seat-1,
+.holdem-heads-up .holdem-seat.seat-2,
+.holdem-heads-up .holdem-seat.seat-4,
+.holdem-heads-up .holdem-seat.seat-5 { display: none !important; }
+.llm-form textarea {
+  width: 100%; padding: 8px 10px; border-radius: 8px;
+  border: 1px solid rgba(245, 197, 74, 0.25);
+  background: rgba(0, 0, 0, 0.35); color: var(--ink);
+  font-family: var(--serif); font-size: 13px; resize: vertical;
+}
+.llm-personality-custom-wrap.hidden { display: none !important; }
+.hidden { display: none !important; }
