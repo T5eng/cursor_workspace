@@ -66,8 +66,22 @@ export const PROVIDERS = [
     id: 'deepseek',
     label: 'DeepSeek',
     defaultBaseUrl: 'https://api.deepseek.com/v1',
-    defaultModel: 'deepseek-chat',
-    models: ['deepseek-chat', 'deepseek-reasoner']
+    defaultModel: 'deepseek-v4-pro',
+    models: ['deepseek-v4-pro', 'deepseek-v4-flash', 'deepseek-chat', 'deepseek-reasoner']
+  },
+  {
+    id: 'glm',
+    label: '智谱 GLM',
+    defaultBaseUrl: 'https://open.bigmodel.cn/api/paas/v4',
+    defaultModel: 'glm-5.1',
+    models: ['glm-5.1', 'glm-5', 'glm-4-flash', 'glm-4-plus']
+  },
+  {
+    id: 'minimax',
+    label: 'MiniMax',
+    defaultBaseUrl: 'https://api.minimax.io/v1',
+    defaultModel: 'MiniMax-M3',
+    models: ['MiniMax-M3', 'MiniMax-M2.7', 'MiniMax-M2.5', 'MiniMax-M2.5-highspeed']
   },
   {
     id: 'custom',

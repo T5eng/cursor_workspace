@@ -31,6 +31,7 @@ export function bootHoldem(rootEl) {
     resumeBtn: rootEl.querySelector('#holdemResumeBtn'),
     gameWrap: rootEl.querySelector('#holdemGameWrap'),
     seats: rootEl.querySelector('#holdemSeats'),
+    heroHand: rootEl.querySelector('#holdemHeroHand'),
     board: rootEl.querySelector('#holdemBoard'),
     pot: rootEl.querySelector('#holdemPot'),
     street: rootEl.querySelector('#holdemStreet'),
@@ -64,7 +65,11 @@ export function bootHoldem(rootEl) {
     appendLog('已手动保存牌局');
     els.message.textContent = '牌局已保存';
   });
-  els.llmBtn?.addEventListener('click', openLlmSettings);
+  els.llmBtn?.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    openLlmSettings();
+  });
   els.restartBtn?.addEventListener('click', () => {
     els.endModal?.classList.add('hidden');
     showSetup();
@@ -155,7 +160,7 @@ function startNewTable() {
   els.root?.classList.toggle('holdem-heads-up', gameMeta.gameMode === 'heads-up');
   logLines = [];
   if (els.log) els.log.innerHTML = '';
-  table = createTable({ players: buildPlayers(), smallBlind: 5, bigBlind: 10, dealerIndex: -1 });
+  table = createTable({ players: buildPlayers(), smallBlind: 5, bigBlind: 10, dealerIndex: 0 });
   const modeLabel = gameMeta.gameMode === 'heads-up' ? '2 人单挑' : '6 人桌';
   const opp = gameMeta.opponentType === 'llm' ? 'LLM 对手' : '规则 Bot';
   appendLog(`新桌：${modeLabel} · NLHE 5/10 · ${opp}`);
@@ -200,12 +205,20 @@ function appendLog(msg, alsoPersist = true) {
 }
 
 function beginHand() {
+  if (!table) return;
   if (table.phase === 'tournamentOver') {
     showEndModal();
     clearHoldemSave();
     return;
   }
-  const ok = startHand(table);
+  let ok = false;
+  try {
+    ok = startHand(table);
+  } catch (e) {
+    console.error('startHand failed', e);
+    if (els.message) els.message.textContent = '发牌失败，请重新开始新局';
+    return;
+  }
   if (!ok) {
     showEndModal();
     clearHoldemSave();
@@ -223,6 +236,7 @@ function render() {
   els.message.textContent = view.message;
   renderBoard(view.board);
   renderSeats(view);
+  renderHeroHand(view);
   renderActions(view);
   els.nextHandBtn.classList.toggle('hidden', view.phase !== 'handOver' && view.phase !== 'showdown');
   persistSave();
@@ -258,6 +272,15 @@ function cardEl(c) {
 function seatClass(i) {
   const pos = gameMeta.gameMode === 'heads-up' ? SEAT_POS_HU : SEAT_POS_6;
   return pos[i] ?? SEAT_POS_6[i];
+}
+
+
+function renderHeroHand(view) {
+  if (!els.heroHand) return;
+  els.heroHand.innerHTML = '';
+  const human = view.players[humanSeat];
+  if (!human?.hole?.length) return;
+  human.hole.forEach(c => els.heroHand.appendChild(cardEl(c)));
 }
 
 function renderSeats(view) {

@@ -807,6 +807,13 @@ body {
   animation: fadeIn 200ms ease;
 }
 .modal.hidden { display: none; }
+
+#llmSettingsModal {
+  z-index: 2000;
+}
+body.llm-modal-open .hub-screen {
+  pointer-events: none;
+}
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
 .modal-card {
@@ -1946,16 +1953,16 @@ body.tutorial-active #jokerRow {
 
 /* ---------- Texas Hold'em ---------- */
 .holdem-app {
-  display: grid;
-  grid-template-rows: auto 1fr;
-  grid-template-columns: 1fr 280px;
-  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  max-height: 100dvh;
   padding: 12px 16px;
   gap: 12px;
   box-sizing: border-box;
+  overflow: hidden;
 }
 .holdem-top {
-  grid-column: 1 / -1;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2107,6 +2114,9 @@ body.tutorial-active #jokerRow {
   border: 1px solid var(--gold-deep);
   color: var(--gold);
   font-size: 22px;
+}
+.holdem-hero-hand {
+  display: none;
 }
 .holdem-message {
   position: absolute;
@@ -2263,14 +2273,136 @@ body.tutorial-active #jokerRow {
 
 @media (max-width: 768px) {
   .holdem-app {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto 1fr auto;
+    padding: 8px 10px;
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
   }
-  .holdem-sidebar {
-    max-height: 200px;
+  .holdem-game-wrap {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    gap: 8px;
+  }
+  .holdem-top {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .holdem-top .ghost-btn {
+    font-size: 11px;
+    padding: 6px 8px;
+  }
+  .holdem-brand {
+    font-size: 16px;
+    flex: 1;
+    text-align: center;
+  }
+  .holdem-table-wrap {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: visible;
   }
   .holdem-felt {
-    max-height: 50vh;
+    width: 100%;
+    max-height: none;
+    min-height: 200px;
+    aspect-ratio: 4 / 3.2;
+    border-radius: 24px;
+    flex: 1;
+  }
+  .holdem-info-bar {
+    top: 8%;
+    font-size: 12px;
+    gap: 12px;
+  }
+  .holdem-board {
+    top: 26%;
+    gap: 4px;
+    z-index: 2;
+  }
+  .holdem-board .holdem-card,
+  .holdem-board .slot.empty {
+    width: 36px;
+    height: 50px;
+    font-size: 11px;
+  }
+  .holdem-board .slot.empty {
+    width: 36px;
+    height: 50px;
+  }
+  .holdem-seat {
+    width: 88px;
+    font-size: 10px;
+  }
+  .holdem-seat.seat-0 {
+    bottom: 6%;
+    width: 100%;
+    max-width: 200px;
+  }
+  .holdem-seat.seat-0 .holdem-hole {
+    display: none;
+  }
+  .holdem-seat.seat-1 { bottom: 18%; left: 4%; }
+  .holdem-seat.seat-2 { top: 14%; left: 4%; }
+  .holdem-seat.seat-3 { top: 2%; }
+  .holdem-seat.seat-4 { top: 14%; right: 4%; }
+  .holdem-seat.seat-5 { bottom: 18%; right: 4%; }
+  .holdem-heads-up .holdem-seat.seat-3 {
+    top: 6%;
+  }
+  .holdem-card {
+    width: 40px;
+    height: 56px;
+  }
+  .holdem-card.back {
+    font-size: 16px;
+  }
+  .holdem-message {
+    bottom: 4%;
+    font-size: 11px;
+    max-width: 95%;
+    z-index: 1;
+  }
+  .holdem-hero-hand {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+    padding: 6px 0 2px;
+    min-height: 62px;
+    z-index: 5;
+  }
+  .holdem-hero-hand .holdem-card {
+    width: 52px;
+    height: 72px;
+    box-shadow: var(--shadow-deep);
+  }
+  .holdem-sidebar {
+    max-height: none;
+    flex-shrink: 0;
+  }
+  .holdem-log {
+    max-height: 72px;
+  }
+  .holdem-actions .btn {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 380px) {
+  .holdem-board .holdem-card,
+  .holdem-board .slot.empty {
+    width: 30px;
+    height: 42px;
+  }
+  .holdem-hero-hand .holdem-card {
+    width: 46px;
+    height: 64px;
+  }
+  .holdem-felt {
+    min-height: 180px;
   }
 }
 
@@ -2290,21 +2422,104 @@ body.tutorial-active #jokerRow {
 .holdem-setup-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
 .holdem-game-wrap {
   display: grid;
-  grid-template-rows: auto 1fr;
   grid-template-columns: 1fr 280px;
+  grid-template-rows: auto 1fr;
   grid-column: 1 / -1;
   gap: 12px;
   min-height: 0;
   flex: 1;
 }
-.holdem-game-wrap.hidden { display: none !important; }
-.holdem-app {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  padding: 12px 16px;
-  box-sizing: border-box;
+.holdem-game-wrap > .holdem-top {
+  grid-column: 1 / -1;
+  grid-row: 1;
 }
+.holdem-game-wrap > .holdem-table-wrap {
+  grid-column: 1;
+  grid-row: 2;
+  min-height: 0;
+}
+.holdem-game-wrap > .holdem-sidebar {
+  grid-column: 2;
+  grid-row: 2;
+  min-height: 0;
+}
+.holdem-game-wrap.hidden { display: none !important; }
+
+/* Mobile portrait: single column, fit within viewport */
+@media (max-width: 768px) and (orientation: portrait) {
+  .holdem-app {
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    overflow: hidden !important;
+    padding: 6px 8px;
+    padding-bottom: max(6px, env(safe-area-inset-bottom));
+    box-sizing: border-box;
+  }
+  .holdem-game-wrap {
+    display: flex !important;
+    flex-direction: column !important;
+    grid-template-columns: unset !important;
+    grid-template-rows: unset !important;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    gap: 6px;
+  }
+  .holdem-game-wrap > .holdem-top {
+    flex-shrink: 0;
+    grid-column: unset;
+    grid-row: unset;
+  }
+  .holdem-game-wrap > .holdem-table-wrap {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    grid-column: unset;
+    grid-row: unset;
+  }
+  .holdem-game-wrap > .holdem-sidebar {
+    flex: 0 0 auto;
+    grid-column: unset;
+    grid-row: unset;
+    max-height: min(42dvh, 320px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .holdem-felt {
+    flex: 1 1 auto;
+    width: 100%;
+    min-height: 0 !important;
+    max-height: 100% !important;
+    aspect-ratio: 4 / 3;
+    height: auto;
+  }
+  .holdem-hero-hand {
+    flex: 0 0 auto;
+  }
+  .holdem-log {
+    max-height: 48px;
+  }
+}
+
+@media (max-width: 768px) and (orientation: landscape) {
+  .holdem-game-wrap {
+    display: grid !important;
+    grid-template-columns: 1fr min(240px, 38vw) !important;
+    grid-template-rows: auto 1fr !important;
+  }
+  .holdem-game-wrap > .holdem-top { grid-column: 1 / -1; }
+  .holdem-game-wrap > .holdem-table-wrap { grid-column: 1; grid-row: 2; }
+  .holdem-game-wrap > .holdem-sidebar { grid-column: 2; grid-row: 2; }
+  .holdem-felt {
+    max-height: 55dvh;
+  }
+}
+
 .holdem-app .holdem-top { flex-shrink: 0; }
 .holdem-heads-up .holdem-seat.seat-1,
 .holdem-heads-up .holdem-seat.seat-2,
@@ -2318,3 +2533,5 @@ body.tutorial-active #jokerRow {
 }
 .llm-personality-custom-wrap.hidden { display: none !important; }
 .hidden { display: none !important; }
+
+html.holdem-active, html.holdem-active body { overflow: hidden; height: 100%; }

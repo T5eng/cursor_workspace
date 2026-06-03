@@ -86,8 +86,10 @@ function postBlind(t, seat, amount) {
 
 function nextSeat(t, from, pred) {
   const n = t.players.length;
+  if (!n) return -1;
+  const start = ((from % n) + n) % n;
   for (let i = 1; i <= n; i++) {
-    const idx = (from + i) % n;
+    const idx = (start + i) % n;
     if (pred(t.players[idx])) return idx;
   }
   return -1;
@@ -272,8 +274,8 @@ export function startHand(t) {
     return false;
   }
 
-  const prevDealer = t.dealerIndex < 0 ? t.players.length - 1 : t.dealerIndex;
-  t.dealerIndex = nextSeat(t, prevDealer, p => p.stack > 0);
+  const beforeDealer = t.dealerIndex < 0 ? t.players.length - 1 : t.dealerIndex;
+  t.dealerIndex = nextSeat(t, beforeDealer, p => p.stack > 0);
   const n = t.players.length;
   const sbSeat = n === 2 ? t.dealerIndex : nextSeat(t, t.dealerIndex, p => p.stack > 0);
   const bbSeat = nextSeat(t, sbSeat, p => p.stack > 0);
