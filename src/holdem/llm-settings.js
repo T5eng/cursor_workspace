@@ -1,5 +1,6 @@
 import {
-  PROVIDERS, providerById, loadLlmConfig, saveLlmConfig, defaultConfig
+  PROVIDERS, PERSONALITIES, providerById, personalityById,
+  loadLlmConfig, saveLlmConfig, defaultConfig
 } from './llm-config.js';
 import { chatCompletion } from './llm-client.js';
 
@@ -8,6 +9,7 @@ let els = null;
 export function wireLlmSettings(dom) {
   els = dom;
   fillProviderSelect();
+  fillPersonalitySelect();
   els.llmSettingsForm?.addEventListener('submit', (e) => {
     e.preventDefault();
     persistFromForm();
@@ -15,6 +17,7 @@ export function wireLlmSettings(dom) {
     setTimeout(() => { els.llmSaveStatus.textContent = ''; }, 2500);
   });
   els.llmProvider?.addEventListener('change', onProviderChange);
+  els.llmPersonality?.addEventListener('change', onPersonalityChange);
   els.llmTestBtn?.addEventListener('click', testConnection);
   els.llmClearKeyBtn?.addEventListener('click', () => {
     if (els.llmApiKey) els.llmApiKey.value = '';
@@ -30,6 +33,13 @@ function fillProviderSelect() {
   ).join('');
 }
 
+function fillPersonalitySelect() {
+  if (!els.llmPersonality) return;
+  els.llmPersonality.innerHTML = PERSONALITIES.map(p =>
+    `<option value="${p.id}">${p.label}</option>`
+  ).join('');
+}
+
 function onProviderChange() {
   const p = providerById(els.llmProvider.value);
   if (p.id !== 'custom') {
@@ -37,6 +47,16 @@ function onProviderChange() {
     els.llmModel.value = p.defaultModel;
   }
   renderModelHints(p);
+}
+
+function onPersonalityChange() {
+  const p = personalityById(els.llmPersonality.value);
+  if (els.llmPersonalityCustom) {
+    els.llmPersonalityCustom.closest('label')?.classList.toggle(
+      'hidden',
+      p.id !== 'custom'
+    );
+  }
 }
 
 function renderModelHints(p) {
@@ -62,7 +82,9 @@ function persistFromForm() {
     model: els.llmModel.value.trim(),
     apiKey: els.llmApiKey.value.trim(),
     temperature: Number(els.llmTemperature.value) || 0.4,
-    maxTokens: Number(els.llmMaxTokens.value) || 120
+    maxTokens: Number(els.llmMaxTokens.value) || 120,
+    personalityId: els.llmPersonality?.value || 'tag',
+    personalityCustom: els.llmPersonalityCustom?.value?.trim() || ''
   };
   saveLlmConfig(cfg);
 }
@@ -75,6 +97,11 @@ export function loadFormFromStorage() {
   els.llmApiKey.value = cfg.apiKey || '';
   els.llmTemperature.value = cfg.temperature ?? 0.4;
   els.llmMaxTokens.value = cfg.maxTokens ?? 120;
+  if (els.llmPersonality) {
+    els.llmPersonality.value = cfg.personalityId || 'tag';
+    if (els.llmPersonalityCustom) els.llmPersonalityCustom.value = cfg.personalityCustom || '';
+    onPersonalityChange();
+  }
   renderModelHints(providerById(cfg.providerId));
 }
 

@@ -308,10 +308,40 @@
   </div>
 
   <div id="holdemApp" class="holdem-app mode-hidden">
+    <div class="modal" id="holdemSetupModal">
+      <div class="modal-card holdem-setup-card">
+        <header class="modal-header"><h2>德州扑克 · 开局</h2></header>
+        <div class="holdem-setup-body">
+          <label>
+            <span>模式</span>
+            <select id="holdemGameMode">
+              <option value="6max">6 人桌</option>
+              <option value="heads-up">2 人单挑</option>
+            </select>
+          </label>
+          <label>
+            <span>对手</span>
+            <select id="holdemOpponentType">
+              <option value="rule">规则 Bot</option>
+              <option value="llm">LLM Bot（需配置 Token）</option>
+            </select>
+          </label>
+          <p class="holdem-setup-hint">盲注 5/10，起始筹码 1000。牌局自动保存到本浏览器，可随时继续。</p>
+          <div class="holdem-setup-actions">
+            <button type="button" class="btn btn-play" id="holdemStartBtn">
+              <span class="btn-main">开始新局</span>
+            </button>
+            <button type="button" class="btn btn-discard hidden" id="holdemResumeBtn">继续牌局</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="holdemGameWrap" class="holdem-game-wrap hidden">
     <header class="holdem-top">
       <button type="button" class="ghost-btn" data-back-hub>主菜单</button>
       <div class="holdem-brand"><span>♠♥♦♣</span> 德州扑克</div>
       <button type="button" class="ghost-btn" id="holdemLlmBtn">LLM 配置</button>
+      <button type="button" class="ghost-btn" id="holdemSaveBtn">保存</button>
     </header>
     <div class="holdem-table-wrap">
       <div class="holdem-felt">
@@ -345,6 +375,7 @@
       </div>
       <div class="holdem-log" id="holdemLog"></div>
     </aside>
+    </div>
     <div class="modal hidden" id="holdemEndModal">
       <div class="modal-card end-card">
         <h2 id="holdemEndTitle">结束</h2>
@@ -377,6 +408,14 @@
           <input type="text" id="llmModel" placeholder="gpt-4o-mini" autocomplete="off" />
         </label>
         <div class="llm-model-hints" id="llmModelHints"></div>
+        <label>
+          <span>LLM 人格 / 打法</span>
+          <select id="llmPersonality"></select>
+        </label>
+        <label class="llm-personality-custom-wrap hidden">
+          <span>自定义人格说明</span>
+          <textarea id="llmPersonalityCustom" rows="3" placeholder="例如：河牌圈爱诈唬，翻前只玩同花连张…"></textarea>
+        </label>
         <label>
           <span>API Token / Key</span>
           <input type="password" id="llmApiKey" placeholder="sk-..." autocomplete="off" />

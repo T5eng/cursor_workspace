@@ -1,5 +1,5 @@
 import { chatCompletion, parseActionJson } from './llm-client.js';
-import { loadLlmConfig } from './llm-config.js';
+import { loadLlmConfig, personalityPrompt } from './llm-config.js';
 import { ruleBotDecide } from './rule-bot.js';
 import { getLegalActions } from './engine.js';
 
@@ -10,9 +10,12 @@ function cardStr(c) {
 
 function buildPrompt(table, seatId, legal) {
   const p = table.players[seatId];
+  const cfg = loadLlmConfig();
+  const persona = personalityPrompt(cfg);
   const lines = [
     'You are a Texas Hold\'em poker bot. Reply with JSON only.',
     '{"action":"fold"|"check"|"call"|"raise"|"allIn","amount":number|null}',
+    `Personality / strategy: ${persona}`,
     `Street: ${table.street}`,
     `Pot: ${table.pot}`,
     `Current bet to match: ${table.currentBet}`,
@@ -49,8 +52,12 @@ export async function llmBotDecide(table, seatId, legal) {
   }
 
   try {
+    const persona = personalityPrompt(cfg);
     const content = await chatCompletion(cfg, [
-      { role: 'system', content: 'You play tight-aggressive NLHE. Output valid JSON only.' },
+      {
+        role: 'system',
+        content: `You play NLHE with this style: ${persona} Output valid JSON only.`
+      },
       { role: 'user', content: buildPrompt(table, seatId, legal) }
     ]);
     const parsed = parseActionJson(content);

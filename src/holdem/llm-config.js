@@ -2,6 +2,39 @@
 
 export const STORAGE_KEY = 'holdem_llm_config_v1';
 
+export const PERSONALITIES = [
+  {
+    id: 'tag',
+    label: '紧凶 TAG',
+    prompt: 'Play tight-aggressive (TAG). Open and continue with strong ranges, value-bet made hands, fold weak hands to large pressure unless pot odds are excellent.'
+  },
+  {
+    id: 'lag',
+    label: '松凶 LAG',
+    prompt: 'Play loose-aggressive (LAG). Open wider, semi-bluff draws, fire bluffs on scary boards when opponents show weakness, but avoid spewing against big raises.'
+  },
+  {
+    id: 'nit',
+    label: '岩石 Nit',
+    prompt: 'Play very tight (nit). Mostly premiums and strong broadways. Rarely bluff. Fold marginal hands to significant aggression.'
+  },
+  {
+    id: 'calling',
+    label: '跟注站',
+    prompt: 'Calling-station style: call frequently with pairs and draws, rarely fold to single bets, seldom raise without very strong hands.'
+  },
+  {
+    id: 'tricky',
+    label: '诡诈',
+    prompt: 'Tricky balanced play: mix value and bluffs, occasional check-raises with strong hands, float flops with position, but stay within legal actions.'
+  },
+  {
+    id: 'custom',
+    label: '自定义',
+    prompt: ''
+  }
+];
+
 export const PROVIDERS = [
   {
     id: 'openai',
@@ -53,8 +86,22 @@ export function defaultConfig() {
     model: p.defaultModel,
     apiKey: '',
     temperature: 0.4,
-    maxTokens: 120
+    maxTokens: 120,
+    personalityId: 'tag',
+    personalityCustom: ''
   };
+}
+
+export function personalityById(id) {
+  return PERSONALITIES.find(x => x.id === id) || PERSONALITIES[0];
+}
+
+export function personalityPrompt(cfg) {
+  const p = personalityById(cfg.personalityId || 'tag');
+  if (p.id === 'custom' && cfg.personalityCustom?.trim()) {
+    return cfg.personalityCustom.trim();
+  }
+  return p.prompt || PERSONALITIES[0].prompt;
 }
 
 export function loadLlmConfig() {

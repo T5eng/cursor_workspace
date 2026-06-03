@@ -2219,3 +2219,48 @@ body.tutorial-active #jokerRow {
     max-height: 50vh;
   }
 }
+
+/* Hold'em setup & heads-up */
+.holdem-setup-card { max-width: 400px; }
+.holdem-setup-body label { display: block; margin-bottom: 12px; font-size: 13px; }
+.holdem-setup-body label span {
+  display: block; margin-bottom: 4px; color: var(--ink-dim);
+  font-family: var(--mono); font-size: 11px; text-transform: uppercase;
+}
+.holdem-setup-body select {
+  width: 100%; padding: 8px; border-radius: 8px;
+  border: 1px solid rgba(245, 197, 74, 0.25);
+  background: rgba(0,0,0,0.35); color: var(--ink);
+}
+.holdem-setup-hint { font-size: 12px; color: var(--ink-dim); line-height: 1.5; }
+.holdem-setup-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.holdem-game-wrap {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  grid-template-columns: 1fr 280px;
+  grid-column: 1 / -1;
+  gap: 12px;
+  min-height: 0;
+  flex: 1;
+}
+.holdem-game-wrap.hidden { display: none !important; }
+.holdem-app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  padding: 12px 16px;
+  box-sizing: border-box;
+}
+.holdem-app .holdem-top { flex-shrink: 0; }
+.holdem-heads-up .holdem-seat.seat-1,
+.holdem-heads-up .holdem-seat.seat-2,
+.holdem-heads-up .holdem-seat.seat-4,
+.holdem-heads-up .holdem-seat.seat-5 { display: none !important; }
+.llm-form textarea {
+  width: 100%; padding: 8px 10px; border-radius: 8px;
+  border: 1px solid rgba(245, 197, 74, 0.25);
+  background: rgba(0, 0, 0, 0.35); color: var(--ink);
+  font-family: var(--serif); font-size: 13px; resize: vertical;
+}
+.llm-personality-custom-wrap.hidden { display: none !important; }
+.hidden { display: none !important; }

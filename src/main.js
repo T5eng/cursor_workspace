@@ -73,7 +73,9 @@ wireLlmSettings({
   llmSaveStatus: $('llmSaveStatus'),
   llmTestStatus: $('llmTestStatus'),
   llmTestBtn: $('llmTestBtn'),
-  llmClearKeyBtn: $('llmClearKeyBtn')
+  llmClearKeyBtn: $('llmClearKeyBtn'),
+  llmPersonality: $('llmPersonality'),
+  llmPersonalityCustom: $('llmPersonalityCustom')
 });
 
 document.querySelectorAll('[data-close-llm]').forEach(btn => {
