@@ -15,18 +15,27 @@ let table = null;
 let humanSeat = 0;
 let botBusy = false;
 let els = {};
-let gameMeta = { gameMode: '6max', opponentType: 'rule' };
+let gameMeta = { ruleBotCount: 4, llmBotCount: 1 };
 let logLines = [];
 
-const SEAT_POS_6 = ['seat-0', 'seat-1', 'seat-2', 'seat-3', 'seat-4', 'seat-5'];
-const SEAT_POS_HU = ['seat-0', 'seat-3'];
+const MAX_OPPONENTS = 5;
+const SEAT_LAYOUT = {
+  2: ['seat-0', 'seat-3'],
+  3: ['seat-0', 'seat-2', 'seat-4'],
+  4: ['seat-0', 'seat-1', 'seat-4', 'seat-5'],
+  5: ['seat-0', 'seat-1', 'seat-2', 'seat-4', 'seat-5'],
+  6: ['seat-0', 'seat-1', 'seat-2', 'seat-3', 'seat-4', 'seat-5']
+};
 
 export function bootHoldem(rootEl) {
   els = {
     root: rootEl,
     setupModal: rootEl.querySelector('#holdemSetupModal'),
-    gameMode: rootEl.querySelector('#holdemGameMode'),
-    opponentType: rootEl.querySelector('#holdemOpponentType'),
+    ruleBotCount: rootEl.querySelector('#holdemRuleBotCount'),
+    llmBotCount: rootEl.querySelector('#holdemLlmBotCount'),
+    setupSummary: rootEl.querySelector('#holdemSetupSummary'),
+    setupHint: rootEl.querySelector('#holdemSetupHint'),
+    llmWarn: rootEl.querySelector('#holdemLlmWarn'),
     startBtn: rootEl.querySelector('#holdemStartBtn'),
     resumeBtn: rootEl.querySelector('#holdemResumeBtn'),
     gameWrap: rootEl.querySelector('#holdemGameWrap'),
@@ -76,6 +85,11 @@ export function bootHoldem(rootEl) {
   });
   els.startBtn?.addEventListener('click', () => {
     readSetupForm();
+    if (gameMeta.llmBotCount > 0 && !hasLlmKey()) {
+      syncSetupForm();
+      openLlmSettings();
+      return;
+    }
     clearHoldemSave();
     startNewTable();
   });
@@ -87,7 +101,12 @@ export function bootHoldem(rootEl) {
     els.resumeBtn.textContent = formatSaveSummary(saved.savedAt);
   }
 
-  syncOpponentOptions();
+  els.ruleBotCount?.addEventListener('input', readSetupForm);
+  els.llmBotCount?.addEventListener('input', readSetupForm);
+  els.ruleBotCount?.addEventListener('change', readSetupForm);
+  els.llmBotCount?.addEventListener('change', readSetupForm);
+
+  syncSetupForm();
   showSetup();
 }
 
@@ -97,73 +116,126 @@ function showSetup() {
   const saved = loadHoldem();
   els.resumeBtn?.classList.toggle('hidden', !saved);
   if (saved) els.resumeBtn.textContent = formatSaveSummary(saved.savedAt);
+  syncSetupForm();
+}
+
+function hasLlmKey() {
+  return Boolean(loadLlmConfig().apiKey?.trim());
+}
+
+function totalPlayers(meta = gameMeta) {
+  return 1 + meta.ruleBotCount + meta.llmBotCount;
+}
+
+function isHeadsUp(meta = gameMeta) {
+  return totalPlayers(meta) === 2;
+}
+
+function clampInt(n, min, max) {
+  return Math.min(max, Math.max(min, Math.round(Number(n)) || 0));
+}
+
+function normalizeMeta(meta) {
+  const m = {
+    ruleBotCount: 4,
+    llmBotCount: 1,
+    ...meta
+  };
+  if (meta.gameMode != null && meta.ruleBotCount == null && meta.llmBotCount == null) {
+    if (meta.gameMode === 'heads-up') {
+      m.ruleBotCount = meta.opponentType === 'llm' ? 0 : 1;
+      m.llmBotCount = meta.opponentType === 'llm' ? 1 : 0;
+    } else {
+      m.llmBotCount = meta.opponentType === 'llm' ? 1 : 0;
+      m.ruleBotCount = MAX_OPPONENTS - m.llmBotCount;
+    }
+  }
+  m.ruleBotCount = clampInt(m.ruleBotCount, 0, MAX_OPPONENTS);
+  m.llmBotCount = clampInt(m.llmBotCount, 0, MAX_OPPONENTS);
+  if (!hasLlmKey()) m.llmBotCount = 0;
+  let opp = m.ruleBotCount + m.llmBotCount;
+  if (opp < 1) m.ruleBotCount = 1;
+  opp = m.ruleBotCount + m.llmBotCount;
+  if (opp > MAX_OPPONENTS) {
+    const over = opp - MAX_OPPONENTS;
+    m.llmBotCount = Math.max(0, m.llmBotCount - over);
+    opp = m.ruleBotCount + m.llmBotCount;
+    if (opp > MAX_OPPONENTS) m.ruleBotCount = MAX_OPPONENTS - m.llmBotCount;
+  }
+  return { ruleBotCount: m.ruleBotCount, llmBotCount: m.llmBotCount };
 }
 
 function readSetupForm() {
-  gameMeta.gameMode = els.gameMode?.value === 'heads-up' ? 'heads-up' : '6max';
-  gameMeta.opponentType = els.opponentType?.value === 'llm' ? 'llm' : 'rule';
+  const rule = els.ruleBotCount?.value;
+  const llm = els.llmBotCount?.value;
+  gameMeta = normalizeMeta({ ruleBotCount: rule, llmBotCount: llm });
+  syncSetupForm();
 }
 
-function syncOpponentOptions() {
-  const hasLlm = Boolean(loadLlmConfig().apiKey?.trim());
-  if (els.opponentType) {
-    const llmOpt = els.opponentType.querySelector('option[value="llm"]');
-    if (llmOpt) {
-      llmOpt.disabled = !hasLlm;
-      if (!hasLlm && els.opponentType.value === 'llm') {
-        els.opponentType.value = 'rule';
-      }
-    }
+function syncSetupForm() {
+  gameMeta = normalizeMeta(gameMeta);
+  const hasLlm = hasLlmKey();
+  if (els.ruleBotCount) els.ruleBotCount.value = String(gameMeta.ruleBotCount);
+  if (els.llmBotCount) {
+    els.llmBotCount.disabled = !hasLlm;
+    els.llmBotCount.value = String(gameMeta.llmBotCount);
+  }
+  els.llmWarn?.classList.toggle('hidden', hasLlm);
+  const n = totalPlayers();
+  const opp = gameMeta.ruleBotCount + gameMeta.llmBotCount;
+  if (els.setupSummary) {
+    const mode = n === 2 ? '单挑' : `${n} 人桌`;
+    els.setupSummary.textContent =
+      `${mode}：你 + ${gameMeta.ruleBotCount} 规则 + ${gameMeta.llmBotCount} LLM`;
+  }
+  if (els.setupHint) {
+    els.setupHint.textContent =
+      '盲注 5/10，起始筹码 1000。对手 1～5 人（合计 2～6 人）。' +
+      (hasLlm ? '' : ' 配置 LLM Token 后可添加 LLM Bot。');
   }
 }
 
 function buildPlayers() {
+  const meta = normalizeMeta(gameMeta);
   const cfg = loadLlmConfig();
-  const useLlm = gameMeta.opponentType === 'llm' && cfg.apiKey?.trim();
   const persona = personalityById(cfg.personalityId || 'tag').label;
-
-  if (gameMeta.gameMode === 'heads-up') {
-    return [
-      createPlayer({ id: 0, name: '你', stack: 1000, isHuman: true }),
-      createPlayer({
-        id: 1,
-        name: useLlm ? `LLM · ${persona}` : '规则 Bot',
-        stack: 1000,
-        botType: useLlm ? 'llm' : 'rule'
-      })
-    ];
-  }
-
-  return [
-    createPlayer({ id: 0, name: '你', stack: 1000, isHuman: true }),
-    createPlayer({ id: 1, name: '规则 Bot A', stack: 1000, botType: 'rule' }),
-    createPlayer({ id: 2, name: '规则 Bot B', stack: 1000, botType: 'rule' }),
-    createPlayer({
-      id: 3,
-      name: useLlm ? `LLM · ${persona}` : '规则 Bot C',
-      stack: 1000,
-      botType: useLlm ? 'llm' : 'rule'
-    }),
-    createPlayer({ id: 4, name: '规则 Bot D', stack: 1000, botType: 'rule' }),
-    createPlayer({
-      id: 5,
-      name: useLlm ? `LLM · ${persona}` : '规则 Bot E',
-      stack: 1000,
-      botType: useLlm ? 'llm' : 'rule'
-    })
+  const players = [
+    createPlayer({ id: 0, name: '你', stack: 1000, isHuman: true })
   ];
+  let id = 1;
+  for (let r = 0; r < meta.ruleBotCount; r++) {
+    const label = String.fromCharCode(65 + (r % 26));
+    players.push(createPlayer({
+      id: id++,
+      name: `规则 Bot ${label}`,
+      stack: 1000,
+      botType: 'rule'
+    }));
+  }
+  for (let l = 0; l < meta.llmBotCount; l++) {
+    const suffix = meta.llmBotCount > 1 ? ` ${l + 1}` : '';
+    players.push(createPlayer({
+      id: id++,
+      name: `LLM · ${persona}${suffix}`,
+      stack: 1000,
+      botType: 'llm'
+    }));
+  }
+  return players;
 }
 
 function startNewTable() {
   els.setupModal?.classList.add('hidden');
   els.gameWrap?.classList.remove('hidden');
-  els.root?.classList.toggle('holdem-heads-up', gameMeta.gameMode === 'heads-up');
+  gameMeta = normalizeMeta(gameMeta);
+  els.root?.classList.toggle('holdem-heads-up', isHeadsUp());
   logLines = [];
   if (els.log) els.log.innerHTML = '';
   table = createTable({ players: buildPlayers(), smallBlind: 5, bigBlind: 10, dealerIndex: 0 });
-  const modeLabel = gameMeta.gameMode === 'heads-up' ? '2 人单挑' : '6 人桌';
-  const opp = gameMeta.opponentType === 'llm' ? 'LLM 对手' : '规则 Bot';
-  appendLog(`新桌：${modeLabel} · NLHE 5/10 · ${opp}`);
+  const n = totalPlayers();
+  appendLog(
+    `新桌：${n} 人 · 规则×${gameMeta.ruleBotCount} LLM×${gameMeta.llmBotCount} · NLHE 5/10`
+  );
   beginHand();
 }
 
@@ -173,12 +245,13 @@ function resumeSaved() {
     showSetup();
     return;
   }
-  gameMeta = { ...saved.meta };
+  gameMeta = normalizeMeta({ ...saved.meta });
   table = saved.table;
   logLines = saved.logLines || [];
   els.setupModal?.classList.add('hidden');
   els.gameWrap?.classList.remove('hidden');
-  els.root?.classList.toggle('holdem-heads-up', gameMeta.gameMode === 'heads-up');
+  gameMeta = normalizeMeta(gameMeta);
+  els.root?.classList.toggle('holdem-heads-up', isHeadsUp());
   if (els.log) {
     els.log.innerHTML = '';
     logLines.forEach(line => appendLog(line, false));
@@ -270,8 +343,9 @@ function cardEl(c) {
 }
 
 function seatClass(i) {
-  const pos = gameMeta.gameMode === 'heads-up' ? SEAT_POS_HU : SEAT_POS_6;
-  return pos[i] ?? SEAT_POS_6[i];
+  const n = table?.players?.length ?? totalPlayers();
+  const layout = SEAT_LAYOUT[n] ?? SEAT_LAYOUT[6];
+  return layout[i] ?? layout[0];
 }
 
 
@@ -424,7 +498,7 @@ function showEndModal() {
   const won = human.stack > 0 && table.players.filter(p => p.stack > 0).length === 1;
   els.endTitle.textContent = won ? '胜利！' : '出局';
   els.endText.textContent = won
-    ? (gameMeta.gameMode === 'heads-up' ? '单挑获胜！' : '你击败了所有对手。')
+    ? (isHeadsUp() ? '单挑获胜！' : '你击败了所有对手。')
     : '筹码用尽，可重新开局。';
   els.endModal.classList.remove('hidden');
 }

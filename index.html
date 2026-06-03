@@ -312,21 +312,17 @@
       <div class="modal-card holdem-setup-card">
         <header class="modal-header"><h2>德州扑克 · 开局</h2></header>
         <div class="holdem-setup-body">
-          <label>
-            <span>模式</span>
-            <select id="holdemGameMode">
-              <option value="6max">6 人桌</option>
-              <option value="heads-up">2 人单挑</option>
-            </select>
+          <label class="holdem-bot-count">
+            <span>规则 Bot 数量</span>
+            <input type="number" id="holdemRuleBotCount" min="0" max="5" value="4" />
           </label>
-          <label>
-            <span>对手</span>
-            <select id="holdemOpponentType">
-              <option value="rule">规则 Bot</option>
-              <option value="llm">LLM Bot（需配置 Token）</option>
-            </select>
+          <label class="holdem-bot-count">
+            <span>LLM Bot 数量</span>
+            <input type="number" id="holdemLlmBotCount" min="0" max="5" value="1" />
           </label>
-          <p class="holdem-setup-hint">盲注 5/10，起始筹码 1000。牌局自动保存到本浏览器，可随时继续。</p>
+          <p class="holdem-setup-summary" id="holdemSetupSummary">共 6 人（你 + 4 规则 + 1 LLM）</p>
+          <p class="holdem-setup-hint" id="holdemSetupHint">盲注 5/10，起始筹码 1000。2～6 人（含你），至少 1 名对手。LLM Bot 需先在「LLM 配置」填写 Token。</p>
+          <p class="holdem-setup-hint holdem-setup-hint-warn hidden" id="holdemLlmWarn">未配置 LLM Token，LLM Bot 数量已限制为 0。</p>
           <div class="holdem-setup-actions">
             <button type="button" class="btn btn-play" id="holdemStartBtn">
               <span class="btn-main">开始新局</span>
