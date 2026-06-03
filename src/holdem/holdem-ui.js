@@ -158,7 +158,7 @@ function startNewTable() {
   els.root?.classList.toggle('holdem-heads-up', gameMeta.gameMode === 'heads-up');
   logLines = [];
   if (els.log) els.log.innerHTML = '';
-  table = createTable({ players: buildPlayers(), smallBlind: 5, bigBlind: 10, dealerIndex: -1 });
+  table = createTable({ players: buildPlayers(), smallBlind: 5, bigBlind: 10, dealerIndex: 0 });
   const modeLabel = gameMeta.gameMode === 'heads-up' ? '2 人单挑' : '6 人桌';
   const opp = gameMeta.opponentType === 'llm' ? 'LLM 对手' : '规则 Bot';
   appendLog(`新桌：${modeLabel} · NLHE 5/10 · ${opp}`);
@@ -203,12 +203,20 @@ function appendLog(msg, alsoPersist = true) {
 }
 
 function beginHand() {
+  if (!table) return;
   if (table.phase === 'tournamentOver') {
     showEndModal();
     clearHoldemSave();
     return;
   }
-  const ok = startHand(table);
+  let ok = false;
+  try {
+    ok = startHand(table);
+  } catch (e) {
+    console.error('startHand failed', e);
+    if (els.message) els.message.textContent = '发牌失败，请重新开始新局';
+    return;
+  }
   if (!ok) {
     showEndModal();
     clearHoldemSave();
