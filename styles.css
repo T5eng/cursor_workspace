@@ -1898,6 +1898,7 @@ body.tutorial-active #jokerRow {
   align-items: center;
   justify-content: center;
   padding: 24px;
+  overflow: auto;
   background:
     radial-gradient(1000px 700px at 50% 20%, rgba(255, 90, 170, 0.12), transparent 55%),
     linear-gradient(180deg, var(--bg-1), var(--bg-0));
@@ -1907,7 +1908,7 @@ body.tutorial-active #jokerRow {
 }
 
 .hub-card {
-  max-width: 420px;
+  max-width: 480px;
   width: 100%;
   text-align: center;
   padding: 32px 28px 28px;
@@ -1949,6 +1950,241 @@ body.tutorial-active #jokerRow {
   font-size: 12px;
   color: var(--ink-dim);
   line-height: 1.5;
+}
+.hub-section {
+  margin-bottom: 18px;
+  text-align: left;
+}
+.hub-section-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  margin-bottom: 10px;
+}
+.hub-minigames {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.hub-minigame-btn {
+  width: 100%;
+  min-height: 64px;
+}
+.hub-minigame-btn .btn-main {
+  font-size: 15px;
+}
+.hub-minigame-btn .btn-sub {
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+/* ---------- Mini-games ---------- */
+.minigame-app {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  max-height: 100dvh;
+  padding: 12px 16px;
+  gap: 12px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.minigame-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.minigame-brand {
+  font-weight: 900;
+  font-size: 20px;
+  color: var(--gold);
+  letter-spacing: 0.06em;
+}
+.minigame-spacer {
+  width: 72px;
+}
+.minigame-root {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 8px 0 16px;
+}
+.mg-panel {
+  width: 100%;
+  max-width: 520px;
+  padding: 20px 18px;
+  border-radius: 16px;
+  border: 1px solid rgba(245, 197, 74, 0.22);
+  background: linear-gradient(180deg, #2a1029, #1a0820);
+  box-shadow: var(--shadow-soft);
+}
+.mg-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  justify-content: center;
+  margin-bottom: 18px;
+  font-size: 14px;
+  color: var(--ink-dim);
+}
+.mg-stats strong {
+  color: var(--ink);
+  font-family: var(--mono);
+}
+.mg-stats .gold { color: var(--gold); }
+.mg-zone {
+  margin-bottom: 16px;
+  text-align: center;
+}
+.mg-zone-label {
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  color: var(--ink-dim);
+  margin-bottom: 8px;
+}
+.mg-hand {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  min-height: 90px;
+}
+.mg-message {
+  text-align: center;
+  color: var(--ink-dim);
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 12px 0 16px;
+  min-height: 1.5em;
+}
+.mg-message.mg-win {
+  color: var(--green);
+  font-weight: 700;
+}
+.mg-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+.mg-bet-btn {
+  min-width: 72px;
+}
+.mg-card-sm {
+  --card-w: 64px;
+  --card-h: 92px;
+  width: var(--card-w);
+  height: var(--card-h);
+}
+.mg-card-sm .corner { font-size: 13px; }
+.mg-card-sm .pip { font-size: 28px; }
+.mg-card-back {
+  width: var(--card-w);
+  height: var(--card-h);
+  border-radius: var(--card-r);
+  background: linear-gradient(135deg, #3a0e2e, #5a1239);
+  border: 2px solid rgba(245, 197, 74, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+}
+.mg-card-back-mark {
+  font-size: 14px;
+  letter-spacing: 0.1em;
+  color: rgba(245, 197, 74, 0.7);
+}
+.mg-matched {
+  opacity: 0.55;
+  filter: saturate(0.7);
+}
+.mg-memory-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.mg-memory-slot {
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  border-radius: var(--card-r);
+  transition: transform 120ms ease;
+}
+.mg-memory-slot:hover:not(:disabled) {
+  transform: translateY(-3px);
+}
+.mg-memory-slot.matched {
+  cursor: default;
+  pointer-events: none;
+}
+.mg-hilo-cards {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.mg-hilo-slot {
+  text-align: center;
+}
+.mg-hilo-arrow {
+  font-size: 28px;
+  color: var(--gold);
+  padding-top: 20px;
+}
+.mg-snake-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+.mg-snake-wrap canvas {
+  border-radius: 12px;
+  border: 2px solid rgba(245, 197, 74, 0.25);
+  box-shadow: var(--shadow-soft);
+  max-width: 100%;
+  height: auto;
+  touch-action: none;
+}
+.mg-snake-hint {
+  text-align: center;
+  font-size: 12px;
+  color: var(--ink-dim);
+  margin-top: 12px;
+}
+
+html.minigame-active,
+html.minigame-active body {
+  overflow: hidden;
+  height: 100%;
+}
+
+@media (max-width: 420px) {
+  .hub-minigames {
+    grid-template-columns: 1fr;
+  }
+  .hub-card {
+    padding: 24px 18px 20px;
+  }
+  .mg-memory-grid {
+    gap: 6px;
+  }
+  .mg-card-sm {
+    --card-w: 56px;
+    --card-h: 80px;
+  }
 }
 
 /* ---------- Texas Hold'em ---------- */
@@ -2757,4 +2993,5 @@ body.tutorial-active #jokerRow {
 .llm-personality-custom-wrap.hidden { display: none !important; }
 .hidden { display: none !important; }
 
-html.holdem-active, html.holdem-active body { overflow: hidden; height: 100%; }
+html.holdem-active, html.holdem-active body,
+html.minigame-active, html.minigame-active body { overflow: hidden; height: 100%; }

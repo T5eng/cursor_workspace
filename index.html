@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#160a17" />
-  <title>扑克合集 · 小丑牌 & 德州</title>
+  <title>扑克合集 · 小丑牌 & 德州 & 小游戏</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -21,16 +21,23 @@
     <div class="hub-card">
       <span class="hub-mark">♠♥♦♣</span>
       <h1 class="hub-title">扑克合集</h1>
-      <p class="hub-tagline">小丑牌 Roguelike · 德州扑克单机 · 可选 LLM 对手</p>
-      <div class="hub-actions">
-        <button type="button" class="btn btn-play hub-game-btn" id="hubBalatroBtn">
-          <span class="btn-main">小丑牌</span>
-          <span class="btn-sub">Balatro-style · 计分过关</span>
-        </button>
-        <button type="button" class="btn btn-discard hub-game-btn" id="hubHoldemBtn">
-          <span class="btn-main">德州扑克</span>
-          <span class="btn-sub">NLHE · 规则 / LLM 对手</span>
-        </button>
+      <p class="hub-tagline">小丑牌 Roguelike · 德州扑克 · 四款休闲小游戏</p>
+      <div class="hub-section">
+        <div class="hub-section-label">主打</div>
+        <div class="hub-actions">
+          <button type="button" class="btn btn-play hub-game-btn" id="hubBalatroBtn">
+            <span class="btn-main">小丑牌</span>
+            <span class="btn-sub">Balatro-style · 计分过关</span>
+          </button>
+          <button type="button" class="btn btn-discard hub-game-btn" id="hubHoldemBtn">
+            <span class="btn-main">德州扑克</span>
+            <span class="btn-sub">NLHE · 规则 / LLM 对手</span>
+          </button>
+        </div>
+      </div>
+      <div class="hub-section">
+        <div class="hub-section-label">小游戏</div>
+        <div class="hub-minigames" id="hubMinigames"></div>
       </div>
       <button type="button" class="ghost-btn hub-llm-btn" id="hubLlmBtn">LLM API 配置</button>
       <p class="hub-hint">Token 仅保存在本浏览器 localStorage，由前端直连你配置的 API（注意 CORS）。</p>
@@ -305,6 +312,15 @@
 
     <!-- floating score popups portal -->
     <div id="popupLayer" class="popup-layer"></div>
+  </div>
+
+  <div id="minigameApp" class="minigame-app mode-hidden">
+    <header class="minigame-top">
+      <button type="button" class="ghost-btn" data-back-hub>主菜单</button>
+      <div class="minigame-brand" id="minigameTitle">小游戏</div>
+      <span class="minigame-spacer"></span>
+    </header>
+    <div id="minigameRoot" class="minigame-root"></div>
   </div>
 
   <div id="holdemApp" class="holdem-app mode-hidden">
