@@ -1,41 +1,14 @@
-// Mini-game registry
+// 跑团 / 叙事游戏注册
 
 export const MINIGAMES = [
   {
-    id: 'blackjack',
-    title: '21点',
-    subtitle: 'Blackjack · 庄闲对赌',
-    emoji: '🃏',
-    boot: () => import('./blackjack.js'),
-    bootFn: 'bootBlackjack',
-    unmountFn: 'unmountBlackjack'
-  },
-  {
-    id: 'memory',
-    title: '记忆翻牌',
-    subtitle: '配对扑克 · 考验记忆力',
-    emoji: '🧠',
-    boot: () => import('./memory.js'),
-    bootFn: 'bootMemory',
-    unmountFn: 'unmountMemory'
-  },
-  {
-    id: 'higher-lower',
-    title: '比大小',
-    subtitle: '猜下一张 · 连胜挑战',
-    emoji: '📈',
-    boot: () => import('./higher-lower.js'),
-    bootFn: 'bootHigherLower',
-    unmountFn: 'unmountHigherLower'
-  },
-  {
-    id: 'snake',
-    title: '贪吃蛇',
-    subtitle: '经典街机 · 吃花色得分',
-    emoji: '🐍',
-    boot: () => import('./snake.js'),
-    bootFn: 'bootSnake',
-    unmountFn: 'unmountSnake'
+    id: 'emperor-rpg',
+    title: '天子跑团',
+    subtitle: '嘉靖朝 · 宫斗权斗 · 活过十二年',
+    emoji: '👑',
+    boot: () => import('./emperor/ui.js'),
+    bootFn: 'bootEmperorRpg',
+    unmountFn: 'unmountEmperorRpg'
   }
 ];
 
