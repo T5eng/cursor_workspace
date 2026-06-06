@@ -125,11 +125,10 @@ function renderPlay() {
         </div>
       </header>
 
-      <div class="rpg-quick-stats" id="rpgQuickStats"></div>
+      <section class="rpg-stats rpg-stats-bar" id="rpgStats" aria-label="国运六维"></section>
 
       <details class="rpg-meta">
-        <summary class="rpg-meta-summary">国运六维 · 人物关系</summary>
-        <div class="rpg-stats" id="rpgStats"></div>
+        <summary class="rpg-meta-summary">人物关系</summary>
         <div class="rpg-npc-grid" id="rpgNpc"></div>
       </details>
 
@@ -165,22 +164,17 @@ function renderPlay() {
     const v = state.stats[key];
     const row = document.createElement('div');
     row.className = `rpg-stat-row ${statBarClass(v, key)}`;
+    row.dataset.stat = key;
     row.innerHTML = `
-      <span class="rpg-stat-name">${STAT_LABELS[key]}</span>
-      <div class="rpg-stat-bar"><div class="rpg-stat-fill" style="width:${v}%"></div></div>
-      <span class="rpg-stat-val">${v}</span>
+      <div class="rpg-stat-head">
+        <span class="rpg-stat-name">${STAT_LABELS[key]}</span>
+        <span class="rpg-stat-val">${v}</span>
+      </div>
+      <div class="rpg-stat-bar" role="meter" aria-valuenow="${v}" aria-valuemin="0" aria-valuemax="100" aria-label="${STAT_LABELS[key]}">
+        <div class="rpg-stat-fill" style="width:${v}%"></div>
+      </div>
     `;
     statsEl.appendChild(row);
-  }
-
-  const quickEl = root.querySelector('#rpgQuickStats');
-  for (const key of STAT_KEYS) {
-    const v = state.stats[key];
-    const chip = document.createElement('span');
-    chip.className = `rpg-quick-chip ${statBarClass(v, key)}`;
-    chip.title = `${STAT_LABELS[key]} ${v}`;
-    chip.innerHTML = `<span class="rpg-quick-label">${STAT_LABELS[key]}</span><span class="rpg-quick-val">${v}</span>`;
-    quickEl.appendChild(chip);
   }
 
   const npcEl = root.querySelector('#rpgNpc');
