@@ -14,9 +14,11 @@ import {
   STAT_LABELS,
   CATEGORY_LABELS,
   VICTORY_YEARS,
-  START_YEAR
+  START_YEAR,
+  completedChapters
 } from './engine.js';
-import { INTRO, pickEvent, resolveChoice } from './events.js';
+import { INTRO, pickEvent, resolveChoice, markStoryProgress } from './events.js';
+import { NPC_LABELS } from './story-events.js';
 
 let root = null;
 let state = defaultState();
@@ -102,19 +104,28 @@ function renderPlay() {
   const outcome = state.pendingOutcome;
   const roll = state.lastRoll;
   const yearsLeft = Math.max(0, VICTORY_YEARS - (state.year - START_YEAR));
+  const chapters = completedChapters(state);
+  const prologueDone = (state.storyStep ?? 0) >= 3;
 
   root.innerHTML = `
     <div class="rpg-panel rpg-play">
       <header class="rpg-header">
         <div class="rpg-time">${escapeHtml(seasonLabel(state))}</div>
-        <div class="rpg-goal">距「中兴」尚余约 <strong>${yearsLeft}</strong> 年</div>
+        <div class="rpg-goal">
+          主线 <strong>${chapters}</strong>/7 · 距中兴约 <strong>${yearsLeft}</strong> 年
+          ${!prologueDone ? ' · <span class="rpg-prologue">序章进行中</span>' : ''}
+        </div>
       </header>
 
       <div class="rpg-stats" id="rpgStats"></div>
+      <details class="rpg-npc" open>
+        <summary>人物关系</summary>
+        <div class="rpg-npc-grid" id="rpgNpc"></div>
+      </details>
 
       ${ev ? `
-        <article class="rpg-event">
-          <span class="rpg-cat rpg-cat-${ev.category}">${escapeHtml(CATEGORY_LABELS[ev.category] || ev.category)}</span>
+        <article class="rpg-event${ev.story ? ' rpg-event-story' : ''}">
+          <span class="rpg-cat rpg-cat-${ev.category}">${escapeHtml(CATEGORY_LABELS[ev.category] || ev.category)}${ev.story ? ' · 主线' : ''}</span>
           <h3 class="rpg-event-title">${escapeHtml(ev.title)}</h3>
           <p class="rpg-event-text">${escapeHtml(ev.text)}</p>
         </article>
@@ -148,6 +159,20 @@ function renderPlay() {
       <span class="rpg-stat-val">${v}</span>
     `;
     statsEl.appendChild(row);
+  }
+
+  const npcEl = root.querySelector('#rpgNpc');
+  const npc = state.npc || {};
+  for (const [key, label] of Object.entries(NPC_LABELS)) {
+    if (npc[key] == null) continue;
+    const v = npc[key];
+    const item = document.createElement('div');
+    item.className = `rpg-npc-item${v < -20 ? ' hostile' : v > 20 ? ' allied' : ''}`;
+    item.innerHTML = `
+      <span class="rpg-npc-name">${escapeHtml(label)}</span>
+      <span class="rpg-npc-val">${v > 0 ? '+' : ''}${v}</span>
+    `;
+    npcEl.appendChild(item);
   }
 
   const choicesEl = root.querySelector('#rpgChoices');
@@ -225,7 +250,7 @@ function beginTurn() {
 function onChoose(index) {
   const ev = state.currentEvent;
   const { state: next, narrative } = resolveChoice(state, ev, index);
-  state = next;
+  state = markStoryProgress(next, ev);
   state = pushLog(state, narrative.slice(0, 56));
   const over = checkGameOver(state);
   if (over) {
@@ -282,11 +307,22 @@ function onNextSeason() {
   beginTurn();
 }
 
+function migrateSave(saved) {
+  const base = defaultState();
+  return {
+    ...base,
+    ...saved,
+    storyStep: saved.storyStep ?? 0,
+    storyBeats: saved.storyBeats ?? {},
+    npc: { ...base.npc, ...(saved.npc || {}) }
+  };
+}
+
 export function bootEmperorRpg(container) {
   root = container;
   const saved = loadSave();
   if (saved?.phase === 'play') {
-    state = saved;
+    state = migrateSave(saved);
     state.phase = 'intro';
   } else {
     state = defaultState();

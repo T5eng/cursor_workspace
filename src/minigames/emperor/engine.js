@@ -1,6 +1,6 @@
 // 嘉靖朝皇帝生存跑团 · 核心引擎
 
-export const SAVE_KEY = 'emperor_rpg_save_v1';
+export const SAVE_KEY = 'emperor_rpg_save_v2';
 export const SEASONS = ['春', '夏', '秋', '冬'];
 export const STAT_KEYS = ['health', 'prestige', 'treasury', 'military', 'morale', 'suspicion'];
 export const STAT_LABELS = {
@@ -41,9 +41,20 @@ export function defaultState() {
     lastEventIds: [],
     log: [],
     flags: {},
+    storyStep: 0,
+    storyBeats: {},
+    npc: {
+      yansong: -15,
+      xujie: 10,
+      taizi: 25,
+      empress: 5,
+      qijiguang: 0,
+      hairui: 0,
+      taoist: -5
+    },
     ending: null,
     lastRoll: null,
-    pendingOutcome: null // after choice resolution narrative
+    pendingOutcome: null
   };
 }
 
@@ -57,6 +68,18 @@ export function applyEffects(stats, effects = {}) {
     if (effects[key] != null) next[key] = clampStat(next[key] + effects[key]);
   }
   return next;
+}
+
+export function applyNpc(npc, changes = {}) {
+  const next = { ...npc };
+  for (const [k, v] of Object.entries(changes)) {
+    if (next[k] != null) next[k] = Math.max(-100, Math.min(100, Math.round(next[k] + v)));
+  }
+  return next;
+}
+
+export function completedChapters(state) {
+  return Object.keys(state.storyBeats || {}).length;
 }
 
 export function rollCheck(statValue, dc) {

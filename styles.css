@@ -2261,6 +2261,50 @@ body.tutorial-active #jokerRow {
   background: rgba(0, 0, 0, 0.25);
   border: 1px solid rgba(245, 197, 74, 0.12);
 }
+.rpg-event-story {
+  border-color: rgba(245, 197, 74, 0.45);
+  box-shadow: 0 0 20px rgba(245, 197, 74, 0.08);
+}
+.rpg-prologue {
+  color: var(--purple);
+}
+.rpg-npc {
+  margin-bottom: 14px;
+  font-size: 13px;
+}
+.rpg-npc summary {
+  cursor: pointer;
+  color: var(--gold);
+  margin-bottom: 8px;
+}
+.rpg-npc-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.rpg-npc-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.rpg-npc-item.allied {
+  border-color: rgba(90, 213, 155, 0.35);
+}
+.rpg-npc-item.hostile {
+  border-color: rgba(226, 69, 90, 0.35);
+}
+.rpg-npc-name {
+  color: var(--ink-dim);
+}
+.rpg-npc-val {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink);
+}
 .rpg-cat {
   display: inline-block;
   font-family: var(--mono);

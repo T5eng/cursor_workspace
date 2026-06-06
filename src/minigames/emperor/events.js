@@ -1,6 +1,7 @@
 // 嘉靖朝随机事件库
 
-import { rollCheck, applyEffects } from './engine.js';
+import { rollCheck, applyEffects, applyNpc } from './engine.js';
+import { PROLOGUE, CHAPTERS, STORY_FLAVOR } from './story-events.js';
 
 function eligible(event, state) {
   const c = event.when || {};
@@ -21,12 +22,21 @@ function eligible(event, state) {
   return true;
 }
 
+function beatDone(state, beat) {
+  return !!(state.storyBeats && state.storyBeats[beat]);
+}
+
 export function pickEvent(state) {
+  const step = state.storyStep ?? 0;
+  if (step < PROLOGUE.length) return PROLOGUE[step];
+
+  const chapter = CHAPTERS.find(e => e.beat && !beatDone(state, e.beat) && eligible(e, state));
+  if (chapter) return chapter;
+
+  const all = [...STORY_FLAVOR, ...EVENTS];
   const recent = new Set(state.lastEventIds);
-  let pool = EVENTS.filter(e => eligible(e, state) && !recent.has(e.id));
-  if (pool.length === 0) {
-    pool = EVENTS.filter(e => eligible(e, state));
-  }
+  let pool = all.filter(e => eligible(e, state) && !recent.has(e.id));
+  if (pool.length === 0) pool = all.filter(e => eligible(e, state));
   const total = pool.reduce((s, e) => s + (e.weight || 8), 0);
   let r = Math.random() * total;
   for (const e of pool) {
@@ -34,6 +44,17 @@ export function pickEvent(state) {
     if (r <= 0) return e;
   }
   return pool[pool.length - 1];
+}
+
+export function markStoryProgress(state, event) {
+  let next = { ...state };
+  if (PROLOGUE.some(e => e.id === event.id)) {
+    next.storyStep = (next.storyStep ?? 0) + 1;
+  }
+  if (event.beat) {
+    next.storyBeats = { ...next.storyBeats, [event.beat]: true };
+  }
+  return next;
 }
 
 export function resolveChoice(state, event, choiceIndex) {
@@ -44,6 +65,7 @@ export function resolveChoice(state, event, choiceIndex) {
   let effects = { ...(choice.effects || {}) };
   let roll = null;
 
+  let branchNpc = null;
   if (choice.check) {
     const statVal = state.stats[choice.check.stat];
     roll = rollCheck(statVal, choice.check.dc);
@@ -51,6 +73,8 @@ export function resolveChoice(state, event, choiceIndex) {
     if (branch?.effects) effects = { ...effects, ...branch.effects };
     if (branch?.result) narrative = branch.result;
     if (branch?.flag) effects._flag = branch.flag;
+    if (branch?.clearFlag) effects._clearFlag = branch.clearFlag;
+    branchNpc = branch?.npc || null;
   }
 
   if (choice.flag) effects._flag = choice.flag;
@@ -61,15 +85,19 @@ export function resolveChoice(state, event, choiceIndex) {
   delete effects._flag;
   delete effects._clearFlag;
 
+  const npcChanges = { ...(choice.npc || {}), ...(branchNpc || {}) };
+
   const stats = applyEffects(state.stats, effects);
   const flags = { ...state.flags };
   if (flag) flags[flag] = true;
   if (clearFlag) delete flags[clearFlag];
+  const npc = applyNpc(state.npc || {}, npcChanges);
 
   let next = {
     ...state,
     stats,
     flags,
+    npc,
     lastRoll: roll,
     pendingOutcome: narrative
   };
@@ -83,11 +111,11 @@ export const INTRO = {
   title: '嘉靖朝·天子跑团',
   era: '大明嘉靖二十一年（1542）',
   paragraphs: [
-    '你即帝位已二十一年。少年时曾「嘉靖之治」，如今却深居西苑，炼丹修道，将朝政托付权臣。',
-    '严嵩父子把持内阁，清流士大夫暗中结党；东南倭寇未平，北方鞑靼时犯边关。连年旱涝，流民啸聚，天象异兆屡见史书。',
-    '本跑团以**季节回合**推进：每季随机遭遇宫斗、权斗、战争、天灾或玄学事件。你的抉择将牵动六维国运——',
-    '**龙体、威信、国库、军威、民心、猜忌**。任何一项失衡，都可能导致驾崩、遇刺、政变或亡国。',
-    `目标：在波谲云诡的朝局中再活 **${12} 年**（48 季），方可称「中兴之世」。祝陛下圣安——若还能撑到那时。`
+    '你即帝位已二十一年。少年时曾「嘉靖之治」，如今深居西苑，炼丹修道，将朝政托付权臣。',
+    '**严嵩**父子把持内阁，**徐阶**清流暗结；**太子**忧惧，**方皇后**恨意未消；道士**陶仲文**进京，**戚继光**在东南苦战倭寇。',
+    '本作含 **三章序章 + 七章主线**：严党顶峰、台州大捷、坤宁宫火、海瑞上疏、铅汞入腹、倒严、终章问心。人物好感将影响后续剧情分支。',
+    '每季遭遇宫斗、权斗、战争、天灾或玄学事件。六维国运——**龙体、威信、国库、军威、民心、猜忌**——任一失衡皆可能驾崩。',
+    `目标：在波谲云诡的朝局中再活 **${12} 年**，见证王朝何去何从。`
   ]
 };
 
