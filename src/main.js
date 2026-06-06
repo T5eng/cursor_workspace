@@ -16,7 +16,7 @@ function showHub() {
   $('app')?.classList.add('mode-hidden');
   $('holdemApp')?.classList.add('mode-hidden');
   $('minigameApp')?.classList.add('mode-hidden');
-  document.title = '扑克合集 · 小丑牌 & 德州 & 小游戏';
+  document.title = '扑克合集 · 小丑牌 & 德州 & 跑团';
 }
 
 function hideHub() {
@@ -95,7 +95,7 @@ function renderMinigameHubButtons() {
   for (const game of MINIGAMES) {
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'btn btn-sort hub-minigame-btn';
+    btn.className = 'btn btn-play hub-minigame-btn hub-rpg-btn';
     btn.dataset.minigame = game.id;
     btn.innerHTML = `
       <span class="btn-main">${game.emoji} ${game.title}</span>
