@@ -46,17 +46,25 @@ function statBarClass(value, key) {
   return '';
 }
 
+function setRootMode(mode) {
+  root?.classList.remove('rpg-mode-play', 'rpg-mode-intro', 'rpg-mode-result');
+  if (mode) root?.classList.add(`rpg-mode-${mode}`);
+}
+
 function render() {
   if (!root) return;
 
   if (state.phase === 'intro') {
+    setRootMode('intro');
     renderIntro();
     return;
   }
   if (state.phase === 'result') {
+    setRootMode('result');
     renderResult();
     return;
   }
+  setRootMode('play');
   renderPlay();
 }
 
@@ -113,38 +121,42 @@ function renderPlay() {
         <div class="rpg-time">${escapeHtml(seasonLabel(state))}</div>
         <div class="rpg-goal">
           主线 <strong>${chapters}</strong>/7 · 距中兴约 <strong>${yearsLeft}</strong> 年
-          ${!prologueDone ? ' · <span class="rpg-prologue">序章进行中</span>' : ''}
+          ${!prologueDone ? ' · <span class="rpg-prologue">序章</span>' : ''}
         </div>
       </header>
 
-      <div class="rpg-stats" id="rpgStats"></div>
-      <details class="rpg-npc" open>
-        <summary>人物关系</summary>
+      <div class="rpg-quick-stats" id="rpgQuickStats"></div>
+
+      <details class="rpg-meta">
+        <summary class="rpg-meta-summary">国运六维 · 人物关系</summary>
+        <div class="rpg-stats" id="rpgStats"></div>
         <div class="rpg-npc-grid" id="rpgNpc"></div>
       </details>
 
-      ${ev ? `
-        <article class="rpg-event${ev.story ? ' rpg-event-story' : ''}">
-          <span class="rpg-cat rpg-cat-${ev.category}">${escapeHtml(CATEGORY_LABELS[ev.category] || ev.category)}${ev.story ? ' · 主线' : ''}</span>
-          <h3 class="rpg-event-title">${escapeHtml(ev.title)}</h3>
-          <p class="rpg-event-text">${escapeHtml(ev.text)}</p>
-        </article>
-      ` : ''}
+      <div class="rpg-scroll">
+        ${ev ? `
+          <article class="rpg-event${ev.story ? ' rpg-event-story' : ''}">
+            <span class="rpg-cat rpg-cat-${ev.category}">${escapeHtml(CATEGORY_LABELS[ev.category] || ev.category)}${ev.story ? ' · 主线' : ''}</span>
+            <h3 class="rpg-event-title">${escapeHtml(ev.title)}</h3>
+            <p class="rpg-event-text">${escapeHtml(ev.text)}</p>
+          </article>
+        ` : ''}
 
-      ${outcome ? `
-        <div class="rpg-outcome">
-          <div class="rpg-outcome-label">后果</div>
-          <p>${escapeHtml(outcome)}</p>
-          ${roll ? renderRoll(roll) : ''}
-        </div>
-      ` : ''}
+        ${outcome ? `
+          <div class="rpg-outcome">
+            <div class="rpg-outcome-label">后果</div>
+            <p>${escapeHtml(outcome)}</p>
+            ${roll ? renderRoll(roll) : ''}
+          </div>
+        ` : ''}
 
-      <div class="rpg-choices" id="rpgChoices"></div>
+        <details class="rpg-log">
+          <summary>起居注</summary>
+          <ul>${state.log.map(l => `<li>${escapeHtml(l)}</li>`).join('') || '<li>（尚无记录）</li>'}</ul>
+        </details>
+      </div>
 
-      <details class="rpg-log">
-        <summary>起居注</summary>
-        <ul>${state.log.map(l => `<li>${escapeHtml(l)}</li>`).join('') || '<li>（尚无记录）</li>'}</ul>
-      </details>
+      <footer class="rpg-choices-dock" id="rpgChoices" aria-label="抉择"></footer>
     </div>
   `;
 
@@ -159,6 +171,16 @@ function renderPlay() {
       <span class="rpg-stat-val">${v}</span>
     `;
     statsEl.appendChild(row);
+  }
+
+  const quickEl = root.querySelector('#rpgQuickStats');
+  for (const key of STAT_KEYS) {
+    const v = state.stats[key];
+    const chip = document.createElement('span');
+    chip.className = `rpg-quick-chip ${statBarClass(v, key)}`;
+    chip.title = `${STAT_LABELS[key]} ${v}`;
+    chip.innerHTML = `<span class="rpg-quick-label">${STAT_LABELS[key]}</span><span class="rpg-quick-val">${v}</span>`;
+    quickEl.appendChild(chip);
   }
 
   const npcEl = root.querySelector('#rpgNpc');
@@ -199,6 +221,8 @@ function renderPlay() {
       choicesEl.appendChild(btn);
     });
   }
+
+  root.querySelector('.rpg-scroll')?.scrollTo(0, 0);
 }
 
 function renderRoll(roll) {

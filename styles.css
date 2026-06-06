@@ -2016,6 +2016,11 @@ body.tutorial-active #jokerRow {
   justify-content: center;
   padding: 8px 0 16px;
 }
+.minigame-root.rpg-mode-play {
+  overflow: hidden;
+  padding: 0;
+  align-items: stretch;
+}
 .mg-panel {
   width: 100%;
   max-width: 520px;
@@ -2197,14 +2202,103 @@ body.tutorial-active #jokerRow {
   margin: 0 0 12px;
   text-align: left;
 }
+.rpg-play {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  max-height: 100%;
+  overflow: hidden;
+  padding-bottom: 0 !important;
+}
 .rpg-header {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: 14px;
-  padding-bottom: 10px;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
   border-bottom: 1px solid rgba(245, 197, 74, 0.15);
+  flex-shrink: 0;
+}
+.rpg-quick-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+  flex-shrink: 0;
+}
+.rpg-quick-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.rpg-quick-chip.warn {
+  border-color: rgba(245, 197, 74, 0.45);
+}
+.rpg-quick-chip.danger {
+  border-color: rgba(226, 69, 90, 0.5);
+  background: rgba(226, 69, 90, 0.12);
+}
+.rpg-quick-label {
+  color: var(--ink-dim);
+  font-family: var(--mono);
+}
+.rpg-quick-val {
+  font-family: var(--mono);
+  font-weight: 700;
+  color: var(--ink);
+}
+.rpg-meta {
+  flex-shrink: 0;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+.rpg-meta-summary {
+  cursor: pointer;
+  color: var(--gold);
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  list-style: none;
+  padding: 6px 0;
+}
+.rpg-meta-summary::-webkit-details-marker {
+  display: none;
+}
+.rpg-meta[open] .rpg-meta-summary {
+  margin-bottom: 8px;
+}
+.rpg-meta .rpg-stats {
+  margin-bottom: 10px;
+}
+.rpg-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding-bottom: 8px;
+}
+.rpg-choices-dock {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 0 max(10px, env(safe-area-inset-bottom));
+  margin: 0 -12px;
+  padding-left: 12px;
+  padding-right: 12px;
+  border-top: 1px solid rgba(245, 197, 74, 0.22);
+  background:
+    linear-gradient(180deg, rgba(26, 8, 32, 0.92), rgba(26, 8, 32, 0.98));
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.35);
 }
 .rpg-time {
   font-weight: 900;
@@ -2267,15 +2361,6 @@ body.tutorial-active #jokerRow {
 }
 .rpg-prologue {
   color: var(--purple);
-}
-.rpg-npc {
-  margin-bottom: 14px;
-  font-size: 13px;
-}
-.rpg-npc summary {
-  cursor: pointer;
-  color: var(--gold);
-  margin-bottom: 8px;
 }
 .rpg-npc-grid {
   display: flex;
@@ -2355,17 +2440,16 @@ body.tutorial-active #jokerRow {
 }
 .rpg-roll.ok { color: var(--green); }
 .rpg-roll.fail { color: var(--red); }
-.rpg-choices {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-bottom: 16px;
-}
-.rpg-choice-btn {
+.rpg-choices-dock .rpg-choice-btn,
+.rpg-choices .rpg-choice-btn {
   width: 100%;
   text-align: left;
   min-height: auto;
-  padding: 12px 16px;
+  padding: 11px 14px;
+}
+.rpg-choices-dock .btn,
+.rpg-choices .btn {
+  width: 100%;
 }
 .rpg-choice-btn .btn-sub {
   display: block;
@@ -3270,16 +3354,25 @@ html.minigame-active, html.minigame-active body { overflow: hidden; height: 100%
   .minigame-spacer {
     display: none;
   }
-  .minigame-root {
+  .minigame-root:not(.rpg-mode-play) {
     padding: 0 0 10px;
     align-items: stretch;
-    -webkit-overflow-scrolling: touch;
   }
-  .minigame-root .rpg-panel,
-  .rpg-panel {
+  .minigame-root.rpg-mode-play {
+    padding: 0;
+  }
+  .minigame-root .rpg-panel:not(.rpg-play),
+  .rpg-panel:not(.rpg-play) {
     max-width: none;
     padding: 14px 12px;
     border-radius: 14px;
+  }
+  .rpg-play {
+    max-width: none;
+    border-radius: 0;
+    padding: 10px 12px 0;
+    border-left: none;
+    border-right: none;
   }
   .rpg-title {
     font-size: 22px;
@@ -3300,13 +3393,25 @@ html.minigame-active, html.minigame-active body { overflow: hidden; height: 100%
     font-size: 12px;
     line-height: 1.45;
   }
+  .rpg-quick-stats {
+    gap: 4px;
+  }
+  .rpg-quick-chip {
+    font-size: 10px;
+    padding: 2px 6px;
+  }
   .rpg-stats {
-    gap: 8px 12px;
-    font-size: 13px;
+    gap: 6px;
+    font-size: 12px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
   }
   .rpg-stat-row {
-    grid-template-columns: 44px 1fr 30px;
-    gap: 6px;
+    grid-template-columns: 36px 1fr 26px;
+    gap: 4px;
+  }
+  .rpg-stat-bar {
+    height: 6px;
   }
   .rpg-npc-grid {
     display: grid;
@@ -3327,8 +3432,21 @@ html.minigame-active, html.minigame-active body { overflow: hidden; height: 100%
     font-size: 14px;
     line-height: 1.65;
   }
-  .rpg-choice-btn {
-    width: 100%;
+  .rpg-choices-dock {
+    margin: 0 -12px;
+    padding-left: 12px;
+    padding-right: 12px;
+    gap: 6px;
+  }
+  .rpg-choices-dock .rpg-choice-btn {
+    padding: 10px 12px;
+  }
+  .rpg-choices-dock .btn-main {
+    font-size: 14px;
+    line-height: 1.35;
+  }
+  .rpg-choices-dock .btn-sub {
+    font-size: 10px;
   }
   .mg-actions .btn {
     flex: 1 1 100%;
