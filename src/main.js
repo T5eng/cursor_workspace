@@ -10,11 +10,19 @@ let holdemBooted = false;
 let activeMinigame = null;
 let activeMinigameMod = null;
 
+function hideHoldemShell() {
+  $('holdemApp')?.classList.add('mode-hidden');
+  $('holdemSetupModal')?.classList.add('hidden');
+  $('holdemEndModal')?.classList.add('hidden');
+  $('holdemGameWrap')?.classList.add('hidden');
+  document.documentElement.classList.remove('holdem-active');
+}
+
 function showHub() {
   document.documentElement.classList.remove('holdem-active', 'minigame-active');
   $('hubScreen')?.classList.remove('hidden');
   $('app')?.classList.add('mode-hidden');
-  $('holdemApp')?.classList.add('mode-hidden');
+  hideHoldemShell();
   $('minigameApp')?.classList.add('mode-hidden');
   document.title = '扑克合集 · 小丑牌 & 德州 & 跑团';
 }
@@ -39,7 +47,7 @@ async function enterBalatro() {
   closeLlmSettings();
   hideHub();
   $('app')?.classList.remove('mode-hidden');
-  $('holdemApp')?.classList.add('mode-hidden');
+  hideHoldemShell();
   $('minigameApp')?.classList.add('mode-hidden');
   document.title = '小丑牌 · Joker Cards';
   if (!balatroBooted) {
@@ -54,8 +62,8 @@ async function enterHoldem() {
   closeLlmSettings();
   hideHub();
   $('app')?.classList.add('mode-hidden');
-  $('holdemApp')?.classList.remove('mode-hidden');
   $('minigameApp')?.classList.add('mode-hidden');
+  $('holdemApp')?.classList.remove('mode-hidden');
   document.documentElement.classList.add('holdem-active');
   document.title = '德州扑克 · Texas Hold\'em';
   if (!holdemBooted) {
@@ -73,7 +81,7 @@ async function enterMinigame(id) {
   closeLlmSettings();
   hideHub();
   $('app')?.classList.add('mode-hidden');
-  $('holdemApp')?.classList.add('mode-hidden');
+  hideHoldemShell();
   $('minigameApp')?.classList.remove('mode-hidden');
   document.documentElement.classList.add('minigame-active');
   document.title = `${game.title} · 扑克合集`;

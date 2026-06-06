@@ -3084,7 +3084,7 @@ html.minigame-active body {
 
 /* Mobile portrait: single column, fit within viewport */
 @media (max-width: 768px) and (orientation: portrait) {
-  .holdem-app {
+  .holdem-app:not(.mode-hidden) {
     display: flex !important;
     flex-direction: column !important;
     height: 100dvh !important;
@@ -3239,3 +3239,102 @@ html.minigame-active body {
 
 html.holdem-active, html.holdem-active body,
 html.minigame-active, html.minigame-active body { overflow: hidden; height: 100%; }
+
+/* Mode switch — must beat mobile holdem display:flex !important */
+#app.mode-hidden,
+#holdemApp.mode-hidden,
+#minigameApp.mode-hidden {
+  display: none !important;
+}
+#holdemApp.mode-hidden .modal {
+  display: none !important;
+}
+
+/* Emperor TRPG — mobile layout */
+@media (max-width: 768px) {
+  .minigame-app {
+    padding: max(8px, env(safe-area-inset-top)) 10px max(8px, env(safe-area-inset-bottom));
+    gap: 8px;
+  }
+  .minigame-top .ghost-btn {
+    font-size: 11px;
+    padding: 6px 10px;
+    flex-shrink: 0;
+  }
+  .minigame-brand {
+    font-size: 16px;
+    text-align: center;
+    flex: 1;
+    min-width: 0;
+  }
+  .minigame-spacer {
+    display: none;
+  }
+  .minigame-root {
+    padding: 0 0 10px;
+    align-items: stretch;
+    -webkit-overflow-scrolling: touch;
+  }
+  .minigame-root .rpg-panel,
+  .rpg-panel {
+    max-width: none;
+    padding: 14px 12px;
+    border-radius: 14px;
+  }
+  .rpg-title {
+    font-size: 22px;
+  }
+  .rpg-intro-body p {
+    font-size: 14px;
+    line-height: 1.65;
+  }
+  .rpg-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+  }
+  .rpg-time {
+    font-size: 16px;
+  }
+  .rpg-goal {
+    font-size: 12px;
+    line-height: 1.45;
+  }
+  .rpg-stats {
+    gap: 8px 12px;
+    font-size: 13px;
+  }
+  .rpg-stat-row {
+    grid-template-columns: 44px 1fr 30px;
+    gap: 6px;
+  }
+  .rpg-npc-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+  .rpg-npc-item {
+    justify-content: space-between;
+    font-size: 12px;
+  }
+  .rpg-event {
+    padding: 12px;
+  }
+  .rpg-event-title {
+    font-size: 17px;
+  }
+  .rpg-event-text {
+    font-size: 14px;
+    line-height: 1.65;
+  }
+  .rpg-choice-btn {
+    width: 100%;
+  }
+  .mg-actions .btn {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+  .rpg-end-title {
+    font-size: 24px;
+  }
+}
