@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid slice">
+  <rect width="800" height="600" fill="#080408"/>
+  <ellipse cx="400" cy="500" rx="300" ry="80" fill="#0a0610" opacity="0.9"/>
+  <rect x="320" y="280" width="160" height="200" fill="#1a1020" stroke="#8e1d29" stroke-opacity="0.3"/>
+  <polygon points="300,280 400,200 500,280" fill="#2a1830"/>
+  <line x1="0" y1="0" x2="800" y2="600" stroke="#e2455a" stroke-opacity="0.05" stroke-width="80"/>
+</svg>

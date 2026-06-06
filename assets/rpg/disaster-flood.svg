@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid slice">
+  <rect width="800" height="600" fill="#142030"/>
+  <rect x="0" y="200" width="800" height="400" fill="#1a3050" opacity="0.7"/>
+  <path d="M0 300 Q200 260 400 290 T800 270 L800 600 L0 600Z" fill="#0e2848"/>
+  <path d="M0 380 Q250 340 500 370 T800 350 L800 600 L0 600Z" fill="#0a2038" opacity="0.9"/>
+  <path d="M0 450 Q300 410 600 440 T800 430 L800 600 L0 600Z" fill="#081828"/>
+</svg>

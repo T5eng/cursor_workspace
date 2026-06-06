@@ -315,11 +315,17 @@
   </div>
 
   <div id="minigameApp" class="minigame-app mode-hidden">
+    <div class="rpg-backdrop" id="rpgBackdrop" aria-hidden="true">
+      <div class="rpg-backdrop-img"></div>
+      <div class="rpg-backdrop-mood"></div>
+      <div class="rpg-backdrop-vignette"></div>
+    </div>
     <header class="minigame-top">
       <button type="button" class="ghost-btn" data-back-hub>主菜单</button>
       <div class="minigame-brand" id="minigameTitle">跑团</div>
       <span class="minigame-spacer"></span>
     </header>
+    <p class="rpg-scene-label" id="rpgSceneLabel" aria-hidden="true"></p>
     <div id="minigameRoot" class="minigame-root"></div>
   </div>
 

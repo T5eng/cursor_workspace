@@ -19,8 +19,11 @@ import {
 } from './engine.js';
 import { INTRO, pickEvent, resolveChoice, markStoryProgress } from './events.js';
 import { NPC_LABELS } from './story-events.js';
+import { applyBackdrop } from './backgrounds.js';
 
 let root = null;
+let backdrop = null;
+let sceneLabel = null;
 let state = defaultState();
 
 function escapeHtml(s) {
@@ -51,6 +54,15 @@ function setRootMode(mode) {
   if (mode) root?.classList.add(`rpg-mode-${mode}`);
 }
 
+function updateScene() {
+  applyBackdrop(backdrop, state);
+  if (sceneLabel) {
+    const labelEl = backdrop?.querySelector('.rpg-backdrop-label');
+    sceneLabel.textContent = labelEl?.textContent || '';
+    sceneLabel.classList.toggle('hidden', !labelEl?.textContent);
+  }
+}
+
 function render() {
   if (!root) return;
 
@@ -66,6 +78,10 @@ function render() {
   }
   setRootMode('play');
   renderPlay();
+}
+
+function finishRender() {
+  updateScene();
 }
 
 function renderIntro() {
@@ -105,6 +121,7 @@ function renderIntro() {
     state.phase = 'play';
     beginTurn();
   });
+  finishRender();
 }
 
 function renderPlay() {
@@ -217,6 +234,7 @@ function renderPlay() {
   }
 
   root.querySelector('.rpg-scroll')?.scrollTo(0, 0);
+  finishRender();
 }
 
 function renderRoll(roll) {
@@ -248,6 +266,7 @@ function renderResult() {
     state = defaultState();
     render();
   });
+  finishRender();
 }
 
 function beginTurn() {
@@ -338,6 +357,14 @@ function migrateSave(saved) {
 
 export function bootEmperorRpg(container) {
   root = container;
+  backdrop = document.getElementById('rpgBackdrop');
+  sceneLabel = document.getElementById('rpgSceneLabel');
+  if (backdrop && !backdrop.querySelector('.rpg-backdrop-label')) {
+    const lbl = document.createElement('span');
+    lbl.className = 'rpg-backdrop-label';
+    lbl.setAttribute('aria-hidden', 'true');
+    backdrop.appendChild(lbl);
+  }
   const saved = loadSave();
   if (saved?.phase === 'play') {
     state = migrateSave(saved);
@@ -351,4 +378,6 @@ export function bootEmperorRpg(container) {
 export function unmountEmperorRpg() {
   if (state.phase === 'play') saveGame(state);
   root = null;
+  backdrop = null;
+  sceneLabel = null;
 }
