@@ -15,7 +15,10 @@ import {
   CATEGORY_LABELS,
   VICTORY_YEARS,
   START_YEAR,
-  completedChapters
+  completedChapters,
+  checkSuccessChance,
+  normalizeDc,
+  statMod
 } from './engine.js';
 import { INTRO, pickEvent, resolveChoice, markStoryProgress } from './events.js';
 import { NPC_LABELS } from './story-events.js';
@@ -225,7 +228,12 @@ function renderPlay() {
       if (c.check) {
         const sub = document.createElement('span');
         sub.className = 'btn-sub';
-        sub.textContent = `检定：${STAT_LABELS[c.check.stat]} · 难度 ${c.check.dc}`;
+        const stat = c.check.stat;
+        const val = state.stats[stat];
+        const dc = normalizeDc(c.check.dc);
+        const mod = statMod(val, stat);
+        const pct = Math.round(checkSuccessChance(val, c.check.dc, stat) * 100);
+        sub.textContent = `检定：1d20${mod >= 0 ? '+' : ''}${mod} ≥ ${dc}（${STAT_LABELS[stat]} ${val} · 约 ${pct}%）`;
         btn.appendChild(sub);
       }
       btn.addEventListener('click', () => onChoose(i));
@@ -238,11 +246,13 @@ function renderPlay() {
 }
 
 function renderRoll(roll) {
+  const mod = roll.mod ?? roll.bonus;
+  const statName = roll.statKey ? STAT_LABELS[roll.statKey] : '属性';
   return `
     <p class="rpg-roll ${roll.success ? 'ok' : 'fail'}">
       🎲 检定 ${roll.success ? '成功' : '失败'}：
-      1d20(${roll.die}) + 属性加成(${roll.bonus}) = ${roll.total}
-      ${roll.success ? '≥' : '<'} ${roll.dc}
+      1d20(${roll.die}) ${mod >= 0 ? '+' : ''}${mod}（${statName} 调整）= ${roll.total}
+      ${roll.success ? '≥' : '<'} DC ${roll.dc}
     </p>
   `;
 }

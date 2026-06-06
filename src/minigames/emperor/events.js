@@ -68,7 +68,7 @@ export function resolveChoice(state, event, choiceIndex) {
   let branchNpc = null;
   if (choice.check) {
     const statVal = state.stats[choice.check.stat];
-    roll = rollCheck(statVal, choice.check.dc);
+    roll = rollCheck(statVal, choice.check.dc, choice.check.stat);
     const branch = roll.success ? choice.onSuccess : choice.onFail;
     if (branch?.effects) effects = { ...effects, ...branch.effects };
     if (branch?.result) narrative = branch.result;
@@ -115,7 +115,8 @@ export const INTRO = {
     '**严嵩**父子把持内阁，**徐阶**清流暗结；**太子**忧惧，**方皇后**恨意未消；道士**陶仲文**进京，**戚继光**在东南苦战倭寇。',
     '本作含 **三章序章 + 七章主线**：严党顶峰、台州大捷、坤宁宫火、海瑞上疏、铅汞入腹、倒严、终章问心。人物好感将影响后续剧情分支。',
     '每季遭遇宫斗、权斗、战争、天灾或玄学事件。六维国运——**龙体、威信、国库、军威、民心、猜忌**——任一失衡皆可能驾崩。',
-    `目标：在波谲云诡的朝局中再活 **${12} 年**，见证王朝何去何从。`
+    `目标：在波谲云诡的朝局中再活 **${12} 年**，见证王朝何去何从。`,
+    '**检定**：部分选项需掷 **1d20 + 属性调整**（属性 50 为 0；每 ±5 调整 ±1）≥ **难度 DC**。属性越高越容易成功。'
   ]
 };
 

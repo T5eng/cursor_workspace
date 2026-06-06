@@ -82,18 +82,49 @@ export function completedChapters(state) {
   return Object.keys(state.storyBeats || {}).length;
 }
 
-export function rollCheck(statValue, dc) {
+/** 属性 50 为基准；每高/低 5 点 → 调整 ±1 */
+export function statMod(statValue, statKey = null) {
+  const anchor = statKey === 'suspicion' ? 40 : 50;
+  return Math.floor((statValue - anchor) / 5);
+}
+
+/** 旧版事件曾误用 48～65 作为 DC，自动换算到 8～18 */
+export function normalizeDc(dc) {
+  if (dc <= 30) return dc;
+  return Math.min(20, Math.max(8, Math.round(8 + (dc - 48) * (10 / 17))));
+}
+
+/**
+ * 检定：1d20 + 属性调整值 ≥ 难度 DC
+ * DC 参考：8 易 · 12 中 · 16 难 · 18 极难
+ */
+export function rollCheck(statValue, dc, statKey = null) {
+  const target = normalizeDc(dc);
   const die = Math.floor(Math.random() * 20) + 1;
-  const bonus = Math.floor(statValue / 5);
-  const total = die + bonus;
+  const mod = statMod(statValue, statKey);
+  const total = die + mod;
   return {
     die,
-    bonus,
+    bonus: mod,
+    mod,
     total,
-    dc,
+    dc: target,
+    rawDc: dc,
     statValue,
-    success: total >= dc
+    statKey,
+    success: total >= target
   };
+}
+
+/** 估算成功率（用于选项提示） */
+export function checkSuccessChance(statValue, dc, statKey = null) {
+  const target = normalizeDc(dc);
+  const mod = statMod(statValue, statKey);
+  let wins = 0;
+  for (let die = 1; die <= 20; die++) {
+    if (die + mod >= target) wins += 1;
+  }
+  return wins / 20;
 }
 
 export function yearLabel(year) {
