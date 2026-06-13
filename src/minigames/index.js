@@ -1,6 +1,15 @@
-// 跑团 / 叙事游戏注册
+// 跑团 / 街机小游戏注册
 
 export const MINIGAMES = [
+  {
+    id: 'kline-rider',
+    title: 'K线摩托',
+    subtitle: '股票 K 线变越野赛道 · 手机横屏',
+    emoji: '🏍️',
+    boot: () => import('./kline-rider/ui.js'),
+    bootFn: 'bootKlineRider',
+    unmountFn: 'unmountKlineRider'
+  },
   {
     id: 'emperor-rpg',
     title: '天子跑团',

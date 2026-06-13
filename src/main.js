@@ -103,7 +103,7 @@ function renderMinigameHubButtons() {
   for (const game of MINIGAMES) {
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'btn btn-play hub-minigame-btn hub-rpg-btn';
+    btn.className = 'btn btn-play hub-minigame-btn';
     btn.dataset.minigame = game.id;
     btn.innerHTML = `
       <span class="btn-main">${game.emoji} ${game.title}</span>
