@@ -86,8 +86,8 @@ function drawBackdropCandles(ctx, width, height, terrain, cameraX, worldH, pad) 
   for (const seg of terrain.track) {
     if (seg.x1 < viewStart || seg.x0 > viewEnd) continue;
     const color = seg.candle.bullish ? BULL_COLOR : BEAR_COLOR;
-    const bodyTop = terrain.priceToWorldY(Math.max(seg.open, seg.close), worldH, pad);
-    const bodyBot = terrain.priceToWorldY(Math.min(seg.open, seg.close), worldH, pad);
+    const bodyTop = terrain.priceToWorldY(seg.bodyTop ?? Math.max(seg.open, seg.close), worldH, pad);
+    const bodyBot = terrain.priceToWorldY(seg.bodyBottom ?? Math.min(seg.open, seg.close), worldH, pad);
     const highY = terrain.priceToWorldY(seg.high, worldH, pad);
     const lowY = terrain.priceToWorldY(seg.low, worldH, pad);
     const cx = seg.x - cameraX;
@@ -98,15 +98,16 @@ function drawBackdropCandles(ctx, width, height, terrain, cameraX, worldH, pad) 
     const hi = highY * scale + 20;
     const lo = lowY * scale + 20;
 
-    ctx.strokeStyle = WICK_COLOR;
-    ctx.lineWidth = 2;
+    // 影线仅作背景装饰，半透明，不表示碰撞区
+    ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+    ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.moveTo(cx, hi);
     ctx.lineTo(cx, lo);
     ctx.stroke();
 
-    ctx.fillStyle = color + '55';
-    ctx.strokeStyle = color + 'aa';
+    ctx.fillStyle = color + '44';
+    ctx.strokeStyle = color + '88';
     ctx.lineWidth = 1.5;
     const h = Math.max(4, bot - top);
     ctx.fillRect(cx - bw / 2, top, bw, h);

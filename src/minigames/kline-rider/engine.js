@@ -9,13 +9,25 @@ export const BRAKE = 380;
 export const JUMP_VELOCITY = -520;
 export const WHEEL_BASE = 34;
 export const BIKE_RADIUS = 14;
+// 允许偏离轨道的垂直距离（世界坐标像素），超出才算坠落
+export const FALL_OFF_TOLERANCE = 130;
+// 地面吸附：空中贴地时的额外容差
+export const GROUND_STICK = 18;
+// 翻车坡度阈值（弧度，约 86°）
+export const FLIP_ANGLE = 1.5;
 
 export function buildTerrain(candles, segmentWidth = SEGMENT_WIDTH) {
-  const lows = candles.map((c) => c.low);
-  const highs = candles.map((c) => c.high);
-  const minPrice = Math.min(...lows);
-  const maxPrice = Math.max(...highs);
-  const span = maxPrice - minPrice || 1;
+  // 赛道高度只按收盘价（加缓冲）映射，影线仅作背景装饰，不参与碰撞
+  const closes = candles.map((c) => c.close);
+  const bodiesLow = candles.map((c) => Math.min(c.open, c.close));
+  const bodiesHigh = candles.map((c) => Math.max(c.open, c.close));
+  const closeMin = Math.min(...closes);
+  const closeMax = Math.max(...closes);
+  const closeSpan = closeMax - closeMin || closeMax * 0.08 || 1;
+  const margin = closeSpan * 0.22;
+  const minPrice = closeMin - margin;
+  const maxPrice = closeMax + margin;
+  const span = maxPrice - minPrice;
 
   const track = candles.map((candle, i) => {
     const x = i * segmentWidth + segmentWidth * 0.5;
@@ -31,7 +43,9 @@ export function buildTerrain(candles, segmentWidth = SEGMENT_WIDTH) {
       open: candle.open,
       close: candle.close,
       high: candle.high,
-      low: candle.low
+      low: candle.low,
+      bodyTop: bodiesHigh[i],
+      bodyBottom: bodiesLow[i]
     };
   });
 
@@ -180,8 +194,8 @@ export function updateGame(state, dt) {
   const wheelCenterY = bike.y + BIKE_RADIUS * 0.6;
   const penetration = wheelCenterY - groundY;
 
-  if (penetration > 0) {
-    bike.y -= penetration;
+  if (penetration > -GROUND_STICK) {
+    if (penetration > 0) bike.y -= penetration;
     bike.vy = Math.min(bike.vy, 0);
     if (!bike.onGround && bike.vy >= -40) {
       bike.onGround = true;
@@ -197,20 +211,14 @@ export function updateGame(state, dt) {
 
   bike.wheelSpin += bike.vx * dt * 0.05;
 
-  const candle = terrain.getCandleAt(bike.x);
-  if (candle) {
-    const ceiling = terrain.priceToWorldY(candle.high, state.worldHeight, state.padding);
-    const floor = terrain.priceToWorldY(candle.low, state.worldHeight, state.padding);
-    if (bike.y - BIKE_RADIUS < ceiling - 6) {
-      return endRun(state, '头顶撞上 K 线高点！');
-    }
-    if (bike.y + BIKE_RADIUS * 2 > floor + 28) {
-      return endRun(state, '坠入 K 线谷底！');
-    }
+  // 只判断是否摔离轨道，不再用 K 线高低点做“天花板/地板”
+  const fallBelow = wheelCenterY - groundY;
+  if (fallBelow > FALL_OFF_TOLERANCE) {
+    return endRun(state, '摔离赛道！');
   }
 
   const tilt = Math.abs(bike.angle);
-  if (tilt > 1.25 && bike.onGround) {
+  if (tilt > FLIP_ANGLE && bike.onGround) {
     return endRun(state, '坡度太陡，翻车！');
   }
 
@@ -226,6 +234,7 @@ export function updateGame(state, dt) {
 
   state.distance = bike.x / terrain.worldLength;
   state.score += bike.vx * dt * 0.04;
+  const candle = terrain.getCandleAt(bike.x);
   if (bike.onGround && candle?.candle.bullish) state.score += dt * 6;
 
   state.cameraX = Math.max(0, bike.x - 220);
