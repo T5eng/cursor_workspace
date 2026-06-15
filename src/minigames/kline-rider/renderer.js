@@ -260,7 +260,7 @@ function drawParticle(ctx, p, cameraX, worldH, pad, canvasH) {
 }
 
 function drawHud(ctx, width, height, state) {
-  const { meta, bike, distance, score, combo, won, phase } = state;
+  const { meta, bike, distance, score, combo, flipCount, won, phase, stuntText, stuntTimer } = state;
   const progress = Math.min(100, distance * 100);
 
   ctx.fillStyle = 'rgba(8, 12, 20, 0.55)';
@@ -289,24 +289,38 @@ function drawHud(ctx, width, height, state) {
   ctx.font = '700 13px JetBrains Mono, monospace';
   ctx.fillStyle = '#fff';
   ctx.fillText(`速度 ${Math.round(bike.vx)}`, barX, barY - 8);
-  ctx.fillText(`得分 ${Math.floor(score)}`, barX + 120, barY - 8);
-  if (combo > 0) {
+  ctx.fillText(`得分 ${Math.floor(score)}`, barX + 110, barY - 8);
+  if (flipCount > 0) {
+    ctx.fillStyle = '#f5c54a';
+    ctx.fillText(`空翻 ${flipCount}`, barX + 220, barY - 8);
+  } else if (combo > 0) {
     ctx.fillStyle = '#3ecf8e';
-    ctx.fillText(`连跳 x${combo}`, barX + 240, barY - 8);
+    ctx.fillText(`连技 x${combo}`, barX + 220, barY - 8);
+  }
+
+  if (stuntText && stuntTimer > 0) {
+    ctx.textAlign = 'center';
+    ctx.font = '900 22px "Noto Serif SC", serif';
+    ctx.fillStyle = 'rgba(0,0,0,0.45)';
+    ctx.fillText(stuntText, width / 2 + 2, height * 0.28 + 2);
+    ctx.fillStyle = '#f5c54a';
+    ctx.fillText(stuntText, width / 2, height * 0.28);
+    ctx.textAlign = 'left';
   }
 
   if (phase === 'result' && state.message) {
     ctx.fillStyle = 'rgba(0,0,0,0.62)';
-    ctx.fillRect(width * 0.2, height * 0.32, width * 0.6, 72);
+    ctx.fillRect(width * 0.2, height * 0.32, width * 0.6, 88);
     ctx.strokeStyle = 'rgba(245,197,74,0.5)';
-    ctx.strokeRect(width * 0.2, height * 0.32, width * 0.6, 72);
+    ctx.strokeRect(width * 0.2, height * 0.32, width * 0.6, 88);
     ctx.textAlign = 'center';
     ctx.font = '700 18px "Noto Serif SC", serif';
-    ctx.fillStyle = won ? '#3ecf8e' : '#ff7b8d';
+    ctx.fillStyle = '#3ecf8e';
     ctx.fillText(state.message, width / 2, height * 0.36 + 14);
     ctx.font = '13px JetBrains Mono, monospace';
     ctx.fillStyle = '#e8edf5';
-    ctx.fillText('点击重试或返回菜单', width / 2, height * 0.36 + 38);
+    ctx.fillText(`空翻 ${flipCount} 次 · 得分 ${Math.floor(score)}`, width / 2, height * 0.36 + 36);
+    ctx.fillText('点击再来一局或换股票', width / 2, height * 0.36 + 54);
     ctx.textAlign = 'left';
   }
 }

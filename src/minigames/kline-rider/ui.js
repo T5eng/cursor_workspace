@@ -11,6 +11,7 @@ import {
   updateGame,
   setInput,
   queueJump,
+  triggerFlip,
   saveHighScore,
   loadHighScore
 } from './engine.js';
@@ -76,7 +77,7 @@ function renderMenu(error = '') {
       <div class="mg-panel kline-panel">
         <p class="kline-eyebrow">🏍️ 横版越野</p>
         <h2 class="kline-title">K线摩托</h2>
-        <p class="kline-desc">查询任意股票、任意时间段的 K 线，把蜡烛图变成越野赛道。手机请<strong>横屏</strong>游玩。</p>
+        <p class="kline-desc">沿 K 线赛道一路冲到终点，自由跳跃、加速、前后空翻，没有失败惩罚。</p>
         <form class="kline-form" id="klineForm">
           <label class="kline-field">
             <span>股票代码</span>
@@ -158,11 +159,13 @@ function renderPlay(data) {
         <canvas id="klineCanvas"></canvas>
       </div>
       <div class="kline-touch-controls" aria-label="触控">
-        <button type="button" class="kline-touch-btn" data-input="brake" aria-label="刹车">刹车</button>
-        <button type="button" class="kline-touch-btn kline-touch-jump" data-input="jump" aria-label="跳跃">跳跃</button>
-        <button type="button" class="kline-touch-btn kline-touch-gas" data-input="gas" aria-label="油门">油门</button>
+        <button type="button" class="kline-touch-btn" data-input="brake" aria-label="减速">减速</button>
+        <button type="button" class="kline-touch-btn kline-touch-flip-back" data-action="flip-back" aria-label="后翻">后翻</button>
+        <button type="button" class="kline-touch-btn kline-touch-jump" data-action="jump" aria-label="跳跃">跳跃</button>
+        <button type="button" class="kline-touch-btn kline-touch-flip-front" data-action="flip-front" aria-label="前翻">前翻</button>
+        <button type="button" class="kline-touch-btn kline-touch-gas" data-input="gas" aria-label="加速">加速</button>
       </div>
-      <div class="kline-desktop-hint">键盘：← → 油门/刹车 · 空格或 ↑ 跳跃</div>
+      <div class="kline-desktop-hint">键盘：D 加速 · A 减速 · 空格跳跃 · J 后翻 · K 前翻（空中）</div>
       <div class="kline-result-actions hidden" id="klineResultActions">
         <button type="button" class="btn btn-play" id="klineRetry">
           <span class="btn-main">再来一局</span>
@@ -204,12 +207,36 @@ function wireInput() {
     const key = btn.dataset.input;
     const down = (e) => {
       e.preventDefault();
-      if (key === 'jump') queueJump(gameState);
-      else setInput(gameState, key, true);
+      setInput(gameState, key, true);
     };
     const up = (e) => {
       e.preventDefault();
-      if (key !== 'jump') setInput(gameState, key, false);
+      setInput(gameState, key, false);
+    };
+    on(btn, 'pointerdown', down);
+    on(btn, 'pointerup', up);
+    on(btn, 'pointerleave', up);
+    on(btn, 'pointercancel', up);
+  }
+
+  const actionBtns = root.querySelectorAll('[data-action]');
+  for (const btn of actionBtns) {
+    const action = btn.dataset.action;
+    const down = (e) => {
+      e.preventDefault();
+      if (action === 'jump') queueJump(gameState);
+      else if (action === 'flip-back') {
+        setInput(gameState, 'flipBack', true);
+        triggerFlip(gameState, 'back');
+      } else if (action === 'flip-front') {
+        setInput(gameState, 'flipFront', true);
+        triggerFlip(gameState, 'front');
+      }
+    };
+    const up = (e) => {
+      e.preventDefault();
+      if (action === 'flip-back') setInput(gameState, 'flipBack', false);
+      if (action === 'flip-front') setInput(gameState, 'flipFront', false);
     };
     on(btn, 'pointerdown', down);
     on(btn, 'pointerup', up);
@@ -234,9 +261,17 @@ function onKeyDown(e) {
   if (!gameState || gameState.phase !== 'play') return;
   if (e.code === 'ArrowRight' || e.code === 'KeyD') setInput(gameState, 'gas', true);
   if (e.code === 'ArrowLeft' || e.code === 'KeyA') setInput(gameState, 'brake', true);
-  if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
+  if (e.code === 'Space' || e.code === 'ArrowUp') {
     e.preventDefault();
     queueJump(gameState);
+  }
+  if (e.code === 'KeyJ' || e.code === 'ArrowDown') {
+    setInput(gameState, 'flipBack', true);
+    triggerFlip(gameState, 'back');
+  }
+  if (e.code === 'KeyK') {
+    setInput(gameState, 'flipFront', true);
+    triggerFlip(gameState, 'front');
   }
 }
 
@@ -244,6 +279,8 @@ function onKeyUp(e) {
   if (!gameState) return;
   if (e.code === 'ArrowRight' || e.code === 'KeyD') setInput(gameState, 'gas', false);
   if (e.code === 'ArrowLeft' || e.code === 'KeyA') setInput(gameState, 'brake', false);
+  if (e.code === 'KeyJ' || e.code === 'ArrowDown') setInput(gameState, 'flipBack', false);
+  if (e.code === 'KeyK') setInput(gameState, 'flipFront', false);
 }
 
 function loop(ts) {

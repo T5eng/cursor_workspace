@@ -3714,9 +3714,9 @@ html.minigame-active, html.minigame-active body { overflow: hidden; height: 100%
 .kline-touch-controls {
   display: none;
   flex-shrink: 0;
-  gap: 8px;
+  gap: 6px;
   padding: 8px 0 0;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: repeat(5, 1fr);
 }
 .kline-touch-btn {
   appearance: none;
@@ -3724,8 +3724,8 @@ html.minigame-active, html.minigame-active body { overflow: hidden; height: 100%
   border-radius: 12px;
   background: linear-gradient(180deg, rgba(42, 16, 41, 0.95), rgba(20, 8, 24, 0.95));
   color: var(--ink);
-  font: 700 14px "Noto Serif SC", serif;
-  padding: 12px 8px;
+  font: 700 13px "Noto Serif SC", serif;
+  padding: 11px 4px;
   touch-action: manipulation;
   user-select: none;
 }
@@ -3740,6 +3740,12 @@ html.minigame-active, html.minigame-active body { overflow: hidden; height: 100%
 }
 .kline-touch-jump {
   background: linear-gradient(180deg, rgba(245, 197, 74, 0.22), rgba(20, 8, 24, 0.95));
+}
+.kline-touch-flip-back {
+  background: linear-gradient(180deg, rgba(255, 120, 80, 0.2), rgba(20, 8, 24, 0.95));
+}
+.kline-touch-flip-front {
+  background: linear-gradient(180deg, rgba(120, 180, 255, 0.2), rgba(20, 8, 24, 0.95));
 }
 .kline-desktop-hint {
   flex-shrink: 0;
