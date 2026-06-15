@@ -146,7 +146,7 @@ async function runAnalysis() {
     const buyN = analysis.signals.filter((s) => s.type === 'buy').length;
     const sellN = analysis.signals.filter((s) => s.type === 'sell').length;
     setStatus(
-      `${intraday.meta.name} · ${period}分钟 · ${intraday.meta.count}根K线 · 低吸${buyN}个 / 高抛${sellN}个信号` +
+      `${intraday.meta.name} · ${intraday.meta.label} · ${period}分钟 · ${intraday.meta.count}根K线 · 低吸${buyN}个 / 高抛${sellN}个信号` +
       (intraday.meta.source === 'mock' ? ' · [模拟数据]' : '')
     );
   } catch (err) {
