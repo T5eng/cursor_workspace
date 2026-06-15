@@ -33,7 +33,7 @@ function priceClass(change) {
   return 'flat';
 }
 
-function renderQuote(quote, levels, lastRsi) {
+function renderQuote(quote, levels, snapshot) {
   quotePanel.classList.remove('hidden');
   $('quoteName').textContent = `${quote.name} (${quote.code})`;
   const pc = priceClass(quote.change);
@@ -46,7 +46,27 @@ function renderQuote(quote, levels, lastRsi) {
   $('statLow').textContent = formatPrice(quote.low);
   $('statPrev').textContent = formatPrice(quote.prevClose);
   $('statVwap').textContent = formatPrice(levels.currentVwap);
-  $('statRsi').textContent = lastRsi != null ? lastRsi.toFixed(1) : '—';
+  $('statRsi').textContent = snapshot.rsi != null ? snapshot.rsi.toFixed(1) : '—';
+  $('statKdj').textContent = snapshot.kdjJ != null ? snapshot.kdjJ.toFixed(1) : '—';
+  $('statMacd').textContent = snapshot.macdHist != null ? snapshot.macdHist.toFixed(3) : '—';
+  $('statCci').textContent = snapshot.cci != null ? snapshot.cci.toFixed(0) : '—';
+  $('statVolRatio').textContent = snapshot.volRatio != null ? snapshot.volRatio.toFixed(2) : '—';
+  $('statAtr').textContent = snapshot.atr != null ? snapshot.atr.toFixed(2) : '—';
+  $('statObv').textContent = snapshot.obvTrend || '—';
+}
+
+function renderCombos(combos) {
+  $('combosGrid').innerHTML = combos.map((c) => `
+    <div class="combo-item combo-${c.bias}">
+      <div class="combo-head">
+        <span class="combo-name">${c.name}</span>
+        <span class="combo-bias">${c.biasLabel}</span>
+      </div>
+      <div class="combo-desc">${c.desc}</div>
+      <div class="combo-notes">${c.notes.join(' · ') || '—'}</div>
+      <div class="combo-score">评分 ${c.score > 0 ? '+' : ''}${c.score}</div>
+    </div>
+  `).join('');
 }
 
 function renderLevels(levels) {
@@ -56,11 +76,15 @@ function renderLevels(levels) {
     { label: '阻力 R2', value: levels.r2, type: 'resist' },
     { label: '支撑 S1', value: levels.s1, type: 'support' },
     { label: '支撑 S2', value: levels.s2, type: 'support' },
-    { label: '昨收', value: levels.prevClose, type: 'neutral' },
+    { label: 'Fib 38.2%', value: levels.fib382, type: 'resist' },
+    { label: 'Fib 50%', value: levels.fib500, type: 'neutral' },
+    { label: 'Fib 61.8%', value: levels.fib618, type: 'support' },
+    { label: '昨高', value: levels.prevHigh, type: 'resist' },
+    { label: '昨低', value: levels.prevLow, type: 'support' },
     { label: '今开', value: levels.todayOpen, type: 'neutral' },
-    { label: '今高', value: levels.todayHigh, type: 'resist' },
-    { label: '今低', value: levels.todayLow, type: 'support' },
-    { label: 'VWAP', value: levels.currentVwap, type: 'neutral' }
+    { label: 'VWAP', value: levels.currentVwap, type: 'neutral' },
+    { label: 'ATR止损(买)', value: levels.atrStopBuy, type: 'support' },
+    { label: 'ATR止损(卖)', value: levels.atrStopSell, type: 'resist' }
   ];
 
   $('levelsGrid').innerHTML = items.map((item) => `
@@ -88,7 +112,7 @@ function renderSignals(signals) {
       </div>
       <div class="signal-time">${sig.datetime}</div>
       <div class="signal-reason">${sig.reasons.join(' · ') || '多指标共振'}</div>
-      <span class="signal-strength">强度 ${sig.strength}/5</span>
+      <span class="signal-strength">强度 ${sig.strength}/10</span>
     </div>
   `).join('');
 }
@@ -122,15 +146,14 @@ async function runAnalysis() {
       quote
     });
 
-    const lastRsi = analysis.indicators.rsiValues.at(-1);
-
     if (quote) {
-      renderQuote(quote, analysis.levels, lastRsi);
+      renderQuote(quote, analysis.levels, analysis.snapshot);
     } else {
       quotePanel.classList.remove('hidden');
       $('quoteName').textContent = `${intraday.meta.name} (${intraday.meta.symbol})`;
     }
 
+    renderCombos(analysis.combos);
     renderLevels(analysis.levels);
     renderSignals(analysis.signals);
     renderStrategy(analysis.strategy);
@@ -146,7 +169,7 @@ async function runAnalysis() {
     const buyN = analysis.signals.filter((s) => s.type === 'buy').length;
     const sellN = analysis.signals.filter((s) => s.type === 'sell').length;
     setStatus(
-      `${intraday.meta.name} · ${intraday.meta.label} · ${period}分钟 · ${intraday.meta.count}根K线 · 低吸${buyN}个 / 高抛${sellN}个信号` +
+      `${intraday.meta.name} · ${intraday.meta.label} · ${period}分钟 · ${intraday.meta.count}根K线 · 低吸${buyN} / 高抛${sellN}` +
       (intraday.meta.source === 'mock' ? ' · [模拟数据]' : '')
     );
   } catch (err) {

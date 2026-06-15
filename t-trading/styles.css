@@ -251,7 +251,7 @@ body {
 /* Main grid */
 .main-grid {
   display: grid;
-  grid-template-columns: 1fr 340px;
+  grid-template-columns: 1fr 360px;
   gap: 16px;
 }
 
@@ -292,6 +292,7 @@ body {
 .leg.buy { color: var(--buy); }
 .leg.sell { color: var(--sell); }
 .leg.vwap { color: var(--vwap); }
+.leg.ma { color: #58a6ff; }
 
 .chart-card canvas {
   width: 100%;
@@ -312,6 +313,65 @@ body {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
+}
+
+/* 四大组合 */
+.combos-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.combo-item {
+  border-radius: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+}
+.combo-bullish { border-left: 3px solid var(--buy); background: var(--buy-dim); }
+.combo-bearish { border-left: 3px solid var(--sell); background: var(--sell-dim); }
+.combo-neutral { border-left: 3px solid var(--accent); }
+
+.combo-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.combo-name {
+  font-weight: 700;
+  font-size: 0.88rem;
+}
+
+.combo-bias {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 4px;
+  background: var(--bg-elevated);
+  color: var(--gold);
+}
+.combo-bullish .combo-bias { color: var(--buy); }
+.combo-bearish .combo-bias { color: var(--sell); }
+
+.combo-desc {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+
+.combo-notes {
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--text-dim);
+}
+
+.combo-score {
+  margin-top: 4px;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--text-dim);
 }
 
 .level-item {

@@ -7,11 +7,28 @@ const COLORS = {
   candleUp: '#f85149',
   candleDown: '#3fb950',
   vwap: '#a371f7',
+  ma10: '#58a6ff',
+  ma20: '#d29922',
   buy: '#3fb950',
   sell: '#f85149',
-  level: 'rgba(88,166,255,0.5)',
+  fib: 'rgba(210,153,34,0.45)',
   bollFill: 'rgba(163,113,247,0.06)'
 };
+
+function drawLine(ctx, points, color, dash = []) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.2;
+  ctx.setLineDash(dash);
+  ctx.beginPath();
+  let started = false;
+  for (const { x, y } of points) {
+    if (y == null || Number.isNaN(y)) continue;
+    if (!started) { ctx.moveTo(x, y); started = true; }
+    else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
 
 export function renderChart(canvas, { candles, indicators, signals, levels }) {
   const dpr = window.devicePixelRatio || 1;
@@ -36,6 +53,7 @@ export function renderChart(canvas, { candles, indicators, signals, levels }) {
   const prices = candles.flatMap((c) => [c.high, c.low]);
   if (indicators.upper) prices.push(...indicators.upper.filter(Boolean));
   if (indicators.lower) prices.push(...indicators.lower.filter(Boolean));
+  if (levels.fib382) prices.push(levels.fib382, levels.fib618);
   let minP = Math.min(...prices);
   let maxP = Math.max(...prices);
   const margin = (maxP - minP) * 0.06 || maxP * 0.02;
@@ -51,6 +69,7 @@ export function renderChart(canvas, { candles, indicators, signals, levels }) {
 
   drawGrid(ctx, w, h, pad, minP, maxP, yAt);
 
+  // Bollinger fill
   if (indicators.upper && indicators.lower) {
     ctx.fillStyle = COLORS.bollFill;
     ctx.beginPath();
@@ -70,22 +89,20 @@ export function renderChart(canvas, { candles, indicators, signals, levels }) {
     ctx.fill();
   }
 
-  if (indicators.vwapValues) {
-    ctx.strokeStyle = COLORS.vwap;
-    ctx.lineWidth = 1.5;
-    ctx.setLineDash([4, 3]);
-    ctx.beginPath();
-    let vStarted = false;
-    for (let i = 0; i < n; i++) {
-      const x = xAt(i);
-      const y = yAt(indicators.vwapValues[i]);
-      if (!vStarted) { ctx.moveTo(x, y); vStarted = true; }
-      else ctx.lineTo(x, y);
-    }
-    ctx.stroke();
-    ctx.setLineDash([]);
+  // MA10 / MA20
+  if (indicators.ma10) {
+    drawLine(ctx, indicators.ma10.map((v, i) => ({ x: xAt(i), y: v != null ? yAt(v) : null })), COLORS.ma10);
+  }
+  if (indicators.ma20) {
+    drawLine(ctx, indicators.ma20.map((v, i) => ({ x: xAt(i), y: v != null ? yAt(v) : null })), COLORS.ma20, [3, 2]);
   }
 
+  // VWAP
+  if (indicators.vwapValues) {
+    drawLine(ctx, indicators.vwapValues.map((v, i) => ({ x: xAt(i), y: yAt(v) })), COLORS.vwap, [4, 3]);
+  }
+
+  // Candles
   for (let i = 0; i < n; i++) {
     const c = candles[i];
     const x = xAt(i);
@@ -112,8 +129,9 @@ export function renderChart(canvas, { candles, indicators, signals, levels }) {
   drawLevelLine(ctx, pad, plotW, yAt, levels.r1, 'R1', COLORS.sell);
   drawLevelLine(ctx, pad, plotW, yAt, levels.s1, 'S1', COLORS.buy);
   drawLevelLine(ctx, pad, plotW, yAt, levels.currentVwap, 'VWAP', COLORS.vwap);
+  drawLevelLine(ctx, pad, plotW, yAt, levels.fib382, 'Fib38', COLORS.fib);
+  drawLevelLine(ctx, pad, plotW, yAt, levels.fib618, 'Fib62', COLORS.fib);
 
-  const signalSet = new Set(signals.map((s) => s.index));
   for (const sig of signals) {
     const x = xAt(sig.index);
     const y = yAt(sig.price);

@@ -77,7 +77,13 @@
         <div class="stat"><span>最低</span><b id="statLow">—</b></div>
         <div class="stat"><span>昨收</span><b id="statPrev">—</b></div>
         <div class="stat"><span>VWAP</span><b id="statVwap">—</b></div>
-        <div class="stat"><span>RSI(14)</span><b id="statRsi">—</b></div>
+        <div class="stat"><span>RSI</span><b id="statRsi">—</b></div>
+        <div class="stat"><span>KDJ-J</span><b id="statKdj">—</b></div>
+        <div class="stat"><span>MACD柱</span><b id="statMacd">—</b></div>
+        <div class="stat"><span>CCI</span><b id="statCci">—</b></div>
+        <div class="stat"><span>量比</span><b id="statVolRatio">—</b></div>
+        <div class="stat"><span>ATR</span><b id="statAtr">—</b></div>
+        <div class="stat"><span>OBV</span><b id="statObv">—</b></div>
       </div>
     </section>
 
@@ -89,12 +95,18 @@
             <span class="leg buy">● 低吸</span>
             <span class="leg sell">● 高抛</span>
             <span class="leg vwap">— VWAP</span>
+            <span class="leg ma">— MA10/20</span>
           </div>
         </div>
         <canvas id="mainChart" width="900" height="380"></canvas>
       </div>
 
       <aside class="side-panel">
+        <div class="card combos-card">
+          <h2>四大组合</h2>
+          <div class="combos-grid" id="combosGrid"></div>
+        </div>
+
         <div class="card levels-card">
           <h2>关键价位</h2>
           <div class="levels-grid" id="levelsGrid"></div>

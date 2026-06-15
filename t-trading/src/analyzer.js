@@ -1,34 +1,58 @@
-// 做T点位分析引擎
+// 做T点位分析引擎 · 四大组合 + 扩展指标
 
 import {
-  rsi, vwap, bollinger, pivotPoints, findSwings, groupByDate, sma
+  rsi, vwap, bollinger, keltner, pivotPoints, findSwings, groupByDate,
+  sma, macd, kdj, obv, atr, cci, volumeRatio, fibonacciLevels, findGaps,
+  obvDivergence, lastValid
 } from './indicators.js';
 
 const RSI_OVERSOLD = 32;
 const RSI_OVERBOUGHT = 68;
+const KDJ_OVERSOLD = 20;
+const KDJ_OVERBOUGHT = 80;
+const CCI_OVERSOLD = -100;
+const CCI_OVERBOUGHT = 100;
 const VWAP_DEVIATION = 0.003;
-const MIN_STRENGTH = 2;
+const MIN_STRENGTH = 3;
 
-/**
- * 综合分析做T信号
- * @param {{ candles: object[], dailyCandles?: object[], quote?: object }} data
- */
 export function analyzeTPoints({ candles, dailyCandles = [], quote = null }) {
   const closes = candles.map((c) => c.close);
   const rsiValues = rsi(closes, 14);
   const vwapValues = vwap(candles);
-  const { mid, upper, lower } = bollinger(closes, 20, 2);
+  const boll = bollinger(closes, 20, 2);
+  const kelt = keltner(candles, 20, 1.5);
   const ma5 = sma(closes, 5);
+  const ma10 = sma(closes, 10);
+  const ma20 = sma(closes, 20);
+  const macdData = macd(closes);
+  const kdjData = kdj(candles, 9);
+  const obvValues = obv(candles);
+  const atrValues = atr(candles, 14);
+  const cciValues = cci(candles, 14);
+  const volRatio = volumeRatio(candles, 5);
   const swings = findSwings(candles, 2);
 
   const levels = computeLevels(candles, dailyCandles, quote);
-  const signals = detectSignals(candles, {
-    rsiValues, vwapValues, upper, lower, mid, ma5, swings, levels
-  });
+  const obvDiv = obvDivergence(candles, obvValues);
 
-  const strategy = buildStrategy(candles, signals, levels, quote, rsiValues);
+  const indicators = {
+    rsiValues, vwapValues,
+    upper: boll.upper, lower: boll.lower, mid: boll.mid,
+    keltUpper: kelt.upper, keltLower: kelt.lower,
+    ma5, ma10, ma20,
+    macdLine: macdData.macdLine,
+    signalLine: macdData.signalLine,
+    histogram: macdData.histogram,
+    kdjK: kdjData.k, kdjD: kdjData.d, kdjJ: kdjData.j,
+    obvValues, atrValues, cciValues, volRatio
+  };
 
-  return { levels, signals, strategy, indicators: { rsiValues, vwapValues, upper, lower, mid, ma5 } };
+  const combos = analyzeCombos(candles, indicators, levels, obvDiv);
+  const signals = detectSignals(candles, { ...indicators, swings, levels, obvDiv });
+  const strategy = buildStrategy(candles, signals, levels, quote, indicators, combos, obvDiv);
+  const snapshot = buildSnapshot(indicators, levels, obvDiv);
+
+  return { levels, signals, strategy, combos, snapshot, indicators };
 }
 
 function computeLevels(candles, dailyCandles, quote) {
@@ -53,7 +77,8 @@ function computeLevels(candles, dailyCandles, quote) {
         high: Math.max(...prevCandles.map((c) => c.high)),
         low: Math.min(...prevCandles.map((c) => c.low)),
         close: prevCandles[prevCandles.length - 1].close,
-        open: prevCandles[0].open
+        open: prevCandles[0].open,
+        date: prevDate
       };
     }
   }
@@ -63,121 +88,233 @@ function computeLevels(candles, dailyCandles, quote) {
   const prevLow = prevDay?.low || todayLow;
 
   const pivots = pivotPoints(prevHigh, prevLow, prevClose);
+  const currentVwap = lastValid(vwap(candles)) || lastCandle.close;
+  const currentAtr = lastValid(atr(candles, 14)) || 0;
+  const price = quote?.price || lastCandle.close;
 
-  const vwapLast = vwap(candles);
-  const currentVwap = vwapLast[vwapLast.length - 1];
+  const fib = fibonacciLevels(todayHigh, todayLow);
+  const gaps = findGaps(dailyCandles.length >= 2 ? dailyCandles : []);
 
   return {
     prevClose,
+    prevHigh,
+    prevLow,
     todayOpen,
     todayHigh,
     todayLow,
-    currentPrice: quote?.price || lastCandle.close,
+    currentPrice: price,
     currentVwap,
+    currentAtr,
+    atrStopBuy: price - currentAtr * 1.5,
+    atrStopSell: price + currentAtr * 1.5,
     ...pivots,
+    ...fib,
+    gaps,
     resistZone: [pivots.r1, pivots.r2],
     supportZone: [pivots.s1, pivots.s2]
   };
 }
 
+/** 四大有效组合评分 */
+function analyzeCombos(candles, ind, levels, obvDiv) {
+  const i = candles.length - 1;
+  const price = candles[i].close;
+  const r = ind.rsiValues[i];
+  const j = ind.kdjJ[i];
+  const cciVal = ind.cciValues[i];
+  const vr = ind.volRatio[i];
+  const vwapV = ind.vwapValues[i];
+  const ma10 = ind.ma10[i];
+  const ma20 = ind.ma20[i];
+  const hist = ind.histogram[i];
+  const prevHist = i > 0 ? ind.histogram[i - 1] : null;
+
+  // ① 趋势+位置：VWAP + MA + 枢轴
+  let trendScore = 0;
+  const trendNotes = [];
+  if (price > vwapV) { trendScore += 1; trendNotes.push('价>VWAP'); }
+  else { trendScore -= 1; trendNotes.push('价<VWAP'); }
+  if (ma10 != null && ma20 != null) {
+    if (price > ma10 && ma10 > ma20) { trendScore += 2; trendNotes.push('均线多头'); }
+    else if (price < ma10 && ma10 < ma20) { trendScore -= 2; trendNotes.push('均线空头'); }
+    else trendNotes.push('均线缠绕');
+  }
+  if (price >= levels.r1 * 0.998) { trendScore -= 1; trendNotes.push('近R1阻力'); }
+  if (price <= levels.s1 * 1.002) { trendScore += 1; trendNotes.push('近S1支撑'); }
+
+  // ② 反转：RSI + KDJ + 布林
+  let reversalScore = 0;
+  const reversalNotes = [];
+  if (r != null && r <= RSI_OVERSOLD) { reversalScore += 2; reversalNotes.push(`RSI超卖${r.toFixed(0)}`); }
+  if (r != null && r >= RSI_OVERBOUGHT) { reversalScore -= 2; reversalNotes.push(`RSI超买${r.toFixed(0)}`); }
+  if (j != null && j <= KDJ_OVERSOLD) { reversalScore += 2; reversalNotes.push(`KDJ超卖J=${j.toFixed(0)}`); }
+  if (j != null && j >= KDJ_OVERBOUGHT) { reversalScore -= 2; reversalNotes.push(`KDJ超买J=${j.toFixed(0)}`); }
+  if (ind.lower[i] != null && price <= ind.lower[i] * 1.003) {
+    reversalScore += 1; reversalNotes.push('布林下轨');
+  }
+  if (ind.upper[i] != null && price >= ind.upper[i] * 0.997) {
+    reversalScore -= 1; reversalNotes.push('布林上轨');
+  }
+  if (cciVal != null && cciVal <= CCI_OVERSOLD) { reversalScore += 1; reversalNotes.push('CCI超卖'); }
+  if (cciVal != null && cciVal >= CCI_OVERBOUGHT) { reversalScore -= 1; reversalNotes.push('CCI超买'); }
+
+  // ③ 价量：量比 + OBV
+  let volumeScore = 0;
+  const volumeNotes = [];
+  if (vr != null) {
+    if (vr > 2) { volumeNotes.push(`放量${vr.toFixed(1)}倍`); volumeScore += price > candles[i].open ? 1 : -1; }
+    else if (vr < 0.6) { volumeNotes.push('缩量'); }
+    else volumeNotes.push(`量比${vr.toFixed(1)}`);
+  }
+  if (obvDiv?.type === 'bearish') { volumeScore -= 2; volumeNotes.push(obvDiv.label); }
+  if (obvDiv?.type === 'bullish') { volumeScore += 2; volumeNotes.push(obvDiv.label); }
+
+  // ④ 动能：MACD + 均线
+  let momentumScore = 0;
+  const momentumNotes = [];
+  if (hist != null && prevHist != null) {
+    if (hist > 0 && prevHist <= 0) { momentumScore += 2; momentumNotes.push('MACD金叉'); }
+    if (hist < 0 && prevHist >= 0) { momentumScore -= 2; momentumNotes.push('MACD死叉'); }
+    if (hist > prevHist && hist > 0) momentumNotes.push('红柱放大');
+    if (hist < prevHist && hist < 0) momentumNotes.push('绿柱放大');
+  }
+  if (ma10 != null && i > 0 && ind.ma10[i - 1] != null) {
+    if (price > ma10 && candles[i - 1].close <= ind.ma10[i - 1]) {
+      momentumScore += 1; momentumNotes.push('站上MA10');
+    }
+    if (price < ma10 && candles[i - 1].close >= ind.ma10[i - 1]) {
+      momentumScore -= 1; momentumNotes.push('跌破MA10');
+    }
+  }
+
+  return [
+    comboCard('trend', '趋势+位置', 'VWAP · MA · 枢轴', trendScore, trendNotes),
+    comboCard('reversal', '反转信号', 'RSI · KDJ · 布林 · CCI', reversalScore, reversalNotes),
+    comboCard('volume', '价量确认', '量比 · OBV背离', volumeScore, volumeNotes),
+    comboCard('momentum', '动能方向', 'MACD · 分时均线', momentumScore, momentumNotes)
+  ];
+}
+
+function comboCard(id, name, desc, score, notes) {
+  let bias = 'neutral';
+  let biasLabel = '中性';
+  if (score >= 2) { bias = 'bullish'; biasLabel = '偏多/低吸'; }
+  else if (score <= -2) { bias = 'bearish'; biasLabel = '偏空/高抛'; }
+  return { id, name, desc, score, bias, biasLabel, notes: notes.slice(0, 4) };
+}
+
+function buildSnapshot(ind, levels, obvDiv) {
+  const last = (arr) => lastValid(arr);
+  return {
+    rsi: last(ind.rsiValues),
+    kdjJ: last(ind.kdjJ),
+    cci: last(ind.cciValues),
+    volRatio: last(ind.volRatio),
+    macdHist: last(ind.histogram),
+    atr: levels.currentAtr,
+    obvTrend: obvDiv?.label || '无背离'
+  };
+}
+
 function detectSignals(candles, ctx) {
-  const { rsiValues, vwapValues, upper, lower, mid, ma5, swings, levels } = ctx;
+  const {
+    rsiValues, vwapValues, upper, lower, keltUpper, keltLower,
+    ma5, ma10, ma20, kdjJ, cciValues, volRatio, histogram,
+    swings, levels, obvDiv
+  } = ctx;
   const signals = [];
   const usedIndices = new Set();
 
-  for (let i = 20; i < candles.length; i++) {
+  for (let i = 25; i < candles.length; i++) {
     const c = candles[i];
     const reasons = [];
     let buyScore = 0;
     let sellScore = 0;
 
     const r = rsiValues[i];
+    const j = kdjJ[i];
+    const cciVal = cciValues[i];
     const v = vwapValues[i];
+    const vr = volRatio[i];
     const devFromVwap = v > 0 ? (c.close - v) / v : 0;
+    const hist = histogram[i];
+    const prevHist = histogram[i - 1];
 
-    if (r != null && r <= RSI_OVERSOLD) {
-      buyScore += 2;
-      reasons.push(`RSI超卖 ${r.toFixed(1)}`);
-    }
-    if (r != null && r >= RSI_OVERBOUGHT) {
-      sellScore += 2;
-      reasons.push(`RSI超买 ${r.toFixed(1)}`);
-    }
+    // 反转组合
+    if (r != null && r <= RSI_OVERSOLD) { buyScore += 2; reasons.push(`RSI${r.toFixed(0)}`); }
+    if (r != null && r >= RSI_OVERBOUGHT) { sellScore += 2; reasons.push(`RSI${r.toFixed(0)}`); }
+    if (j != null && j <= KDJ_OVERSOLD) { buyScore += 2; reasons.push(`KDJ${j.toFixed(0)}`); }
+    if (j != null && j >= KDJ_OVERBOUGHT) { sellScore += 2; reasons.push(`KDJ${j.toFixed(0)}`); }
+    if (cciVal != null && cciVal <= CCI_OVERSOLD) { buyScore += 1; reasons.push('CCI超卖'); }
+    if (cciVal != null && cciVal >= CCI_OVERBOUGHT) { sellScore += 1; reasons.push('CCI超买'); }
 
-    if (devFromVwap < -VWAP_DEVIATION) {
-      buyScore += 1;
-      reasons.push('低于VWAP');
-    }
-    if (devFromVwap > VWAP_DEVIATION) {
-      sellScore += 1;
-      reasons.push('高于VWAP');
-    }
+    // 趋势+位置
+    if (devFromVwap < -VWAP_DEVIATION) { buyScore += 1; reasons.push('低于VWAP'); }
+    if (devFromVwap > VWAP_DEVIATION) { sellScore += 1; reasons.push('高于VWAP'); }
+    if (lower[i] != null && c.low <= lower[i] * 1.002) { buyScore += 2; reasons.push('布林下轨'); }
+    if (upper[i] != null && c.high >= upper[i] * 0.998) { sellScore += 2; reasons.push('布林上轨'); }
+    if (keltLower[i] != null && c.low <= keltLower[i] * 1.002) { buyScore += 1; reasons.push('肯特纳下轨'); }
+    if (keltUpper[i] != null && c.high >= keltUpper[i] * 0.998) { sellScore += 1; reasons.push('肯特纳上轨'); }
+    if (c.low <= levels.s1 * 1.002) { buyScore += 1; reasons.push('近S1'); }
+    if (c.high >= levels.r1 * 0.998) { sellScore += 1; reasons.push('近R1'); }
+    if (c.low <= levels.fib618 * 1.002) { buyScore += 1; reasons.push('Fib61.8%'); }
+    if (c.high >= levels.fib382 * 0.998) { sellScore += 1; reasons.push('Fib38.2%'); }
 
-    if (lower[i] != null && c.low <= lower[i] * 1.002) {
-      buyScore += 2;
-      reasons.push('触及布林下轨');
+    // 动能
+    if (hist != null && prevHist != null) {
+      if (hist > 0 && prevHist <= 0) { buyScore += 2; reasons.push('MACD金叉'); }
+      if (hist < 0 && prevHist >= 0) { sellScore += 2; reasons.push('MACD死叉'); }
     }
-    if (upper[i] != null && c.high >= upper[i] * 0.998) {
-      sellScore += 2;
-      reasons.push('触及布林上轨');
-    }
-
-    if (c.low <= levels.s1 * 1.002) {
-      buyScore += 1;
-      reasons.push(`近S1 ${levels.s1.toFixed(2)}`);
-    }
-    if (c.high >= levels.r1 * 0.998) {
-      sellScore += 1;
-      reasons.push(`近R1 ${levels.r1.toFixed(2)}`);
-    }
-
-    if (ma5[i] != null && i > 0 && ma5[i - 1] != null) {
-      if (c.close > ma5[i] && candles[i - 1].close <= ma5[i - 1] && buyScore > 0) {
-        buyScore += 1;
-        reasons.push('站上MA5');
+    if (ma10[i] != null && i > 0 && ma10[i - 1] != null) {
+      if (c.close > ma10[i] && candles[i - 1].close <= ma10[i - 1]) {
+        buyScore += 1; reasons.push('站上MA10');
       }
-      if (c.close < ma5[i] && candles[i - 1].close >= ma5[i - 1] && sellScore > 0) {
-        sellScore += 1;
-        reasons.push('跌破MA5');
+      if (c.close < ma10[i] && candles[i - 1].close >= ma10[i - 1]) {
+        sellScore += 1; reasons.push('跌破MA10');
       }
+    }
+    if (ma20[i] != null && c.close > ma20[i]) buyScore += 0.5;
+    if (ma20[i] != null && c.close < ma20[i]) sellScore += 0.5;
+
+    // 价量
+    if (vr != null && vr > 2.5) {
+      if (c.close < c.open) { sellScore += 1; reasons.push('放量下跌'); }
+      else { buyScore += 1; reasons.push('放量上涨'); }
+    }
+    if (vr != null && vr < 0.5 && buyScore > 0) {
+      buyScore -= 0.5; reasons.push('缩量反弹');
     }
 
     const isSwingLow = swings.lows.some((s) => s.index === i);
     const isSwingHigh = swings.highs.some((s) => s.index === i);
-
     if (isSwingLow) buyScore += 1;
     if (isSwingHigh) sellScore += 1;
 
+    buyScore = Math.round(buyScore);
+    sellScore = Math.round(sellScore);
+
     if (buyScore >= MIN_STRENGTH && buyScore > sellScore && !usedIndices.has(i)) {
-      signals.push({
-        type: 'buy',
-        label: '低吸',
-        index: i,
-        price: c.low,
-        datetime: c.datetime,
-        strength: buyScore,
-        reasons: [...new Set(reasons.filter((r) =>
-          r.includes('RSI') || r.includes('VWAP') || r.includes('布林') || r.includes('S1') || r.includes('MA5')
-        ))].slice(0, 4)
-      });
+      signals.push(makeSignal('buy', i, c, buyScore, reasons));
       usedIndices.add(i);
     } else if (sellScore >= MIN_STRENGTH && sellScore > buyScore && !usedIndices.has(i)) {
-      signals.push({
-        type: 'sell',
-        label: '高抛',
-        index: i,
-        price: c.high,
-        datetime: c.datetime,
-        strength: sellScore,
-        reasons: [...new Set(reasons.filter((r) =>
-          r.includes('RSI') || r.includes('VWAP') || r.includes('布林') || r.includes('R1') || r.includes('MA5')
-        ))].slice(0, 4)
-      });
+      signals.push(makeSignal('sell', i, c, sellScore, reasons));
       usedIndices.add(i);
     }
   }
 
   return dedupeSignals(signals).slice(-30);
+}
+
+function makeSignal(type, i, c, strength, reasons) {
+  return {
+    type,
+    label: type === 'buy' ? '低吸' : '高抛',
+    index: i,
+    price: type === 'buy' ? c.low : c.high,
+    datetime: c.datetime,
+    strength: Math.min(strength, 10),
+    reasons: [...new Set(reasons)].slice(0, 5)
+  };
 }
 
 function dedupeSignals(signals) {
@@ -193,59 +330,44 @@ function dedupeSignals(signals) {
   return result;
 }
 
-function buildStrategy(candles, signals, levels, quote, rsiValues) {
+function buildStrategy(candles, signals, levels, quote, ind, combos, obvDiv) {
   const price = levels.currentPrice;
-  const lastRsi = rsiValues[rsiValues.length - 1];
-  const recentBuy = signals.filter((s) => s.type === 'buy').slice(-3);
-  const recentSell = signals.filter((s) => s.type === 'sell').slice(-3);
-
-  let bias = 'neutral';
-  let biasLabel = '震荡';
-  const distToR1 = (levels.r1 - price) / price;
-  const distToS1 = (price - levels.s1) / price;
-
-  if (lastRsi != null) {
-    if (lastRsi > 65 && price > levels.currentVwap) {
-      bias = 'bearish';
-      biasLabel = '偏高抛';
-    } else if (lastRsi < 35 && price < levels.currentVwap) {
-      bias = 'bullish';
-      biasLabel = '偏低吸';
-    }
-  }
-
+  const lastRsi = lastValid(ind.rsiValues);
+  const lastJ = lastValid(ind.kdjJ);
   const lines = [];
 
-  lines.push(`<span class="strategy-tag ${bias === 'bullish' ? 'bearish' : bias === 'bearish' ? 'bullish' : 'neutral'}">${biasLabel}</span>`);
+  const dominant = combos.reduce((a, b) =>
+    Math.abs(b.score) > Math.abs(a.score) ? b : a, combos[0]);
 
-  if (bias === 'bearish') {
-    lines.push(`当前价 <strong>${price.toFixed(2)}</strong> 接近阻力区，适合<strong>正T</strong>（先卖后买）。`);
-    lines.push(`建议高抛区间：<strong>${levels.r1.toFixed(2)} ~ ${levels.r2.toFixed(2)}</strong>，低吸回补：<strong>${levels.s1.toFixed(2)} ~ ${levels.currentVwap.toFixed(2)}</strong>。`);
-  } else if (bias === 'bullish') {
-    lines.push(`当前价 <strong>${price.toFixed(2)}</strong> 接近支撑区，适合<strong>反T</strong>（先买后卖）或低吸加仓。`);
-    lines.push(`建议低吸区间：<strong>${levels.s1.toFixed(2)} ~ ${levels.s2.toFixed(2)}</strong>，高抛止盈：<strong>${levels.r1.toFixed(2)} ~ ${levels.currentVwap.toFixed(2)}</strong>。`);
+  lines.push(`<span class="strategy-tag ${dominant.bias === 'bullish' ? 'bearish' : dominant.bias === 'bearish' ? 'bullish' : 'neutral'}">${dominant.biasLabel}</span>`);
+  lines.push(`主导组合：<strong>${dominant.name}</strong>（${dominant.desc}）`);
+
+  if (dominant.bias === 'bearish') {
+    lines.push(`当前价 <strong>${price.toFixed(2)}</strong>，综合指标偏空，适合<strong>正T</strong>（先卖后买）。`);
+    lines.push(`高抛参考 <strong>${levels.r1.toFixed(2)} ~ ${levels.r2.toFixed(2)}</strong>，回补 <strong>${levels.s1.toFixed(2)} ~ ${levels.currentVwap.toFixed(2)}</strong>。`);
+  } else if (dominant.bias === 'bullish') {
+    lines.push(`当前价 <strong>${price.toFixed(2)}</strong>，综合指标偏多，适合<strong>反T</strong>或低吸。`);
+    lines.push(`低吸参考 <strong>${levels.s1.toFixed(2)} ~ ${levels.fib618.toFixed(2)}</strong>，止盈 <strong>${levels.r1.toFixed(2)}</strong>。`);
   } else {
-    lines.push(`当前价 <strong>${price.toFixed(2)}</strong> 在 VWAP（<strong>${levels.currentVwap.toFixed(2)}</strong>）附近震荡。`);
-    lines.push(`高抛低吸参考：阻力 <strong>${levels.r1.toFixed(2)}</strong>，支撑 <strong>${levels.s1.toFixed(2)}</strong>。`);
+    lines.push(`当前价 <strong>${price.toFixed(2)}</strong> 震荡，围绕 VWAP <strong>${levels.currentVwap.toFixed(2)}</strong> 高抛低吸。`);
   }
 
-  if (distToR1 < 0.005) {
-    lines.push('⚠ 价格已逼近 R1 阻力位，注意冲高回落风险。');
-  }
-  if (distToS1 < 0.005) {
-    lines.push('⚠ 价格已逼近 S1 支撑位，可关注反弹低吸机会。');
+  if (levels.currentAtr > 0) {
+    lines.push(`ATR=${levels.currentAtr.toFixed(2)}，止损参考：低吸 <strong>${levels.atrStopBuy.toFixed(2)}</strong> / 高抛 <strong>${levels.atrStopSell.toFixed(2)}</strong>。`);
   }
 
-  if (recentSell.length) {
-    const last = recentSell[recentSell.length - 1];
-    lines.push(`最近高抛信号：<strong>${last.price.toFixed(2)}</strong>（${last.datetime}）`);
-  }
-  if (recentBuy.length) {
-    const last = recentBuy[recentBuy.length - 1];
-    lines.push(`最近低吸信号：<strong>${last.price.toFixed(2)}</strong>（${last.datetime}）`);
+  if (obvDiv) lines.push(`⚠ ${obvDiv.label}：${obvDiv.hint}`);
+
+  if (levels.gaps?.length) {
+    const g = levels.gaps[levels.gaps.length - 1];
+    lines.push(`${g.label}：<strong>${g.bottom.toFixed(2)} ~ ${g.top.toFixed(2)}</strong>（${g.date}）`);
   }
 
-  lines.push('<br><em>A股 T+1 规则：做T需有底仓。正T=高位卖出低位买回；反T=低位买入高位卖出（需昨日持仓）。</em>');
+  const recentSell = signals.filter((s) => s.type === 'sell').slice(-1)[0];
+  const recentBuy = signals.filter((s) => s.type === 'buy').slice(-1)[0];
+  if (recentSell) lines.push(`最近高抛：<strong>${recentSell.price.toFixed(2)}</strong>（${recentSell.datetime}）`);
+  if (recentBuy) lines.push(`最近低吸：<strong>${recentBuy.price.toFixed(2)}</strong>（${recentBuy.datetime}）`);
 
+  lines.push('<br><em>A股 T+1：做T需底仓。美股 T+0 可日内双向。港股 T+0 无限制。</em>');
   return lines.join('<br>');
 }
