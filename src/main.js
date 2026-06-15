@@ -18,13 +18,26 @@ function hideHoldemShell() {
   document.documentElement.classList.remove('holdem-active');
 }
 
+function showHubLanding() {
+  $('hubLanding')?.classList.remove('hidden');
+  $('hubStockPanel')?.classList.add('hidden');
+  $('hubPlayPanel')?.classList.add('hidden');
+}
+
+function showHubPanel(panel) {
+  $('hubLanding')?.classList.add('hidden');
+  $('hubStockPanel')?.classList.toggle('hidden', panel !== 'stock');
+  $('hubPlayPanel')?.classList.toggle('hidden', panel !== 'play');
+}
+
 function showHub() {
   document.documentElement.classList.remove('holdem-active', 'minigame-active');
   $('hubScreen')?.classList.remove('hidden');
   $('app')?.classList.add('mode-hidden');
   hideHoldemShell();
   $('minigameApp')?.classList.add('mode-hidden');
-  document.title = '扑克合集 · 小丑牌 & 德州 & 跑团';
+  showHubLanding();
+  document.title = '摸鱼驿站 · 不务正业 & 玩物丧志';
 }
 
 function hideHub() {
@@ -114,6 +127,21 @@ function renderMinigameHubButtons() {
 }
 
 function onHubClick(e) {
+  if (e.target.closest('[data-hub-back]')) {
+    e.preventDefault();
+    showHubLanding();
+    return;
+  }
+  if (e.target.closest('#hubPortalStock')) {
+    e.preventDefault();
+    showHubPanel('stock');
+    return;
+  }
+  if (e.target.closest('#hubPortalPlay')) {
+    e.preventDefault();
+    showHubPanel('play');
+    return;
+  }
   const llmBtn = e.target.closest('#hubLlmBtn');
   if (llmBtn) {
     e.preventDefault();
