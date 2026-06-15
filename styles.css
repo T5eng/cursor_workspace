@@ -1945,6 +1945,17 @@ body.tutorial-active #jokerRow {
   margin-top: 16px;
   width: 100%;
 }
+.hub-tools {
+  margin-top: 12px;
+  text-align: center;
+}
+.hub-tool-link {
+  color: var(--green);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+}
+.hub-tool-link:hover { text-decoration: underline; }
 .hub-hint {
   margin-top: 16px;
   font-size: 12px;

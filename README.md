@@ -13,6 +13,12 @@
 
 打开后先进入**主菜单**，再选择小丑牌、德州扑克，或**嘉靖朝皇帝生存跑团**。主菜单与德州内均可打开 **LLM API 配置**。
 
+### 做T量化分析（独立路径）
+
+**https://t5eng.github.io/cursor_workspace/t-trading/**
+
+A 股日内做T点位分析工具：输入任意 6 位股票代码，基于东方财富分时数据，综合 RSI、VWAP、布林带、枢轴点等指标，标注低吸/高抛信号与关键价位。纯前端，无后端依赖。
+
 推送到 `main` 后会自动部署到 `gh-pages` 分支（约 1–2 分钟）。
 
 ### LLM 对手（德州）
@@ -159,6 +165,10 @@ python3 -m http.server 8080 --bind 0.0.0.0
 .
 ├── index.html          # 入口
 ├── styles.css          # 美术 / 排版 / 动画
+├── t-trading/          # 做T量化分析（独立 GitHub Pages 路径）
+│   ├── index.html
+│   ├── styles.css
+│   └── src/            # api / indicators / analyzer / chart
 └── src/
     ├── main.js         # 主菜单 / 模式切换
     ├── cards.js        # 牌 / 牌组 / 扑克牌型识别

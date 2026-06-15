@@ -15,6 +15,10 @@
 
 **https://t5eng.github.io/cursor_workspace/**
 
+### 做T量化分析（独立路径）
+
+**https://t5eng.github.io/cursor_workspace/t-trading/**
+
 ## 手动重新部署
 
 在 Actions 页选择 **Deploy to GitHub Pages** → **Run workflow**。
