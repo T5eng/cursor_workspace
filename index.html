@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#160a17" />
-  <title>摸鱼驿站 · 不务正业 & 玩物丧志</title>
+  <title>摸鱼驿站 · 扑克 & 跑团</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -18,83 +18,34 @@
 </head>
 <body>
   <div id="hubScreen" class="hub-screen">
-    <div class="hub-wrap">
-      <!-- 门户首页 -->
-      <div id="hubLanding" class="hub-landing">
-        <div class="hub-brand">
-          <span class="hub-mark">☯</span>
-          <h1 class="hub-title">摸鱼驿站</h1>
-          <p class="hub-tagline">正经工作一件没有，旁门左道样样精通</p>
-        </div>
-        <div class="hub-portals">
-          <button type="button" class="hub-portal hub-portal--stock" id="hubPortalStock">
-            <span class="hub-portal-emoji">📈</span>
-            <span class="hub-portal-name">不务正业</span>
-            <span class="hub-portal-desc">股票 · 量化 · 做T分析</span>
-            <span class="hub-portal-arrow">进入 →</span>
+    <div class="hub-card">
+      <div class="hub-brand">
+        <span class="hub-mark">♠♥♦♣</span>
+        <h1 class="hub-title">摸鱼驿站</h1>
+        <p class="hub-tagline">小丑牌 · 德州扑克 · K线摩托 · 嘉靖朝跑团</p>
+      </div>
+
+      <div class="hub-section">
+        <div class="hub-section-label">主打</div>
+        <div class="hub-actions">
+          <button type="button" class="btn btn-play hub-game-btn" id="hubBalatroBtn">
+            <span class="btn-main">🃏 小丑牌</span>
+            <span class="btn-sub">Balatro-style · 计分过关</span>
           </button>
-          <button type="button" class="hub-portal hub-portal--play" id="hubPortalPlay">
-            <span class="hub-portal-emoji">🎰</span>
-            <span class="hub-portal-name">玩物丧志</span>
-            <span class="hub-portal-desc">扑克 · 跑团 · K线摩托</span>
-            <span class="hub-portal-arrow">进入 →</span>
+          <button type="button" class="btn btn-discard hub-game-btn" id="hubHoldemBtn">
+            <span class="btn-main">♠️ 德州扑克</span>
+            <span class="btn-sub">NLHE · 规则 / LLM 对手</span>
           </button>
         </div>
       </div>
 
-      <!-- 不务正业 · 股票 -->
-      <div id="hubStockPanel" class="hub-panel hub-panel--stock hidden">
-        <button type="button" class="hub-back" data-hub-back>← 返回门户</button>
-        <div class="hub-panel-head">
-          <span class="hub-panel-emoji">📈</span>
-          <div>
-            <h2 class="hub-panel-title">不务正业</h2>
-            <p class="hub-panel-sub">看盘做T，上班摸鱼两不误</p>
-          </div>
-        </div>
-        <div class="hub-panel-items">
-          <a class="hub-item hub-item--link" href="./t-trading/">
-            <span class="hub-item-icon">T</span>
-            <span class="hub-item-body">
-              <span class="hub-item-name">做T量化分析</span>
-              <span class="hub-item-sub">A股 / 港股 / 美股 · 低吸高抛点位</span>
-            </span>
-            <span class="hub-item-arrow">↗</span>
-          </a>
-        </div>
-        <p class="hub-hint">腾讯财经数据 · 纯前端 · 不构成投资建议</p>
+      <div class="hub-section">
+        <div class="hub-section-label">小游戏</div>
+        <div class="hub-minigames" id="hubMinigames"></div>
       </div>
 
-      <!-- 玩物丧志 · 游戏 -->
-      <div id="hubPlayPanel" class="hub-panel hub-panel--play hidden">
-        <button type="button" class="hub-back" data-hub-back>← 返回门户</button>
-        <div class="hub-panel-head">
-          <span class="hub-panel-emoji">🎰</span>
-          <div>
-            <h2 class="hub-panel-title">玩物丧志</h2>
-            <p class="hub-panel-sub">打牌跑团，时间就这样没了</p>
-          </div>
-        </div>
-        <div class="hub-section">
-          <div class="hub-section-label">主打</div>
-          <div class="hub-actions">
-            <button type="button" class="btn btn-play hub-game-btn" id="hubBalatroBtn">
-              <span class="btn-main">小丑牌</span>
-              <span class="btn-sub">Balatro-style · 计分过关</span>
-            </button>
-            <button type="button" class="btn btn-discard hub-game-btn" id="hubHoldemBtn">
-              <span class="btn-main">德州扑克</span>
-              <span class="btn-sub">NLHE · 规则 / LLM 对手</span>
-            </button>
-          </div>
-        </div>
-        <div class="hub-section">
-          <div class="hub-section-label">小游戏</div>
-          <div class="hub-minigames" id="hubMinigames"></div>
-        </div>
-        <button type="button" class="ghost-btn hub-llm-btn" id="hubLlmBtn">LLM API 配置</button>
-        <p class="hub-hint">Token 仅保存在本浏览器 localStorage，由前端直连你配置的 API（注意 CORS）。</p>
-      </div>
+      <button type="button" class="ghost-btn hub-llm-btn" id="hubLlmBtn">LLM API 配置</button>
+      <p class="hub-hint">纯前端 · 无账号 · Token 仅存本机 localStorage（注意 CORS）</p>
     </div>
   </div>
 

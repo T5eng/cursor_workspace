@@ -18,26 +18,13 @@ function hideHoldemShell() {
   document.documentElement.classList.remove('holdem-active');
 }
 
-function showHubLanding() {
-  $('hubLanding')?.classList.remove('hidden');
-  $('hubStockPanel')?.classList.add('hidden');
-  $('hubPlayPanel')?.classList.add('hidden');
-}
-
-function showHubPanel(panel) {
-  $('hubLanding')?.classList.add('hidden');
-  $('hubStockPanel')?.classList.toggle('hidden', panel !== 'stock');
-  $('hubPlayPanel')?.classList.toggle('hidden', panel !== 'play');
-}
-
 function showHub() {
   document.documentElement.classList.remove('holdem-active', 'minigame-active');
   $('hubScreen')?.classList.remove('hidden');
   $('app')?.classList.add('mode-hidden');
   hideHoldemShell();
   $('minigameApp')?.classList.add('mode-hidden');
-  showHubLanding();
-  document.title = '摸鱼驿站 · 不务正业 & 玩物丧志';
+  document.title = '摸鱼驿站 · 扑克 & 跑团';
 }
 
 function hideHub() {
@@ -97,7 +84,7 @@ async function enterMinigame(id) {
   hideHoldemShell();
   $('minigameApp')?.classList.remove('mode-hidden');
   document.documentElement.classList.add('minigame-active');
-  document.title = `${game.title} · 扑克合集`;
+  document.title = `${game.title} · 摸鱼驿站`;
 
   const titleEl = $('minigameTitle');
   if (titleEl) titleEl.textContent = `${game.emoji} ${game.title}`;
@@ -127,21 +114,6 @@ function renderMinigameHubButtons() {
 }
 
 function onHubClick(e) {
-  if (e.target.closest('[data-hub-back]')) {
-    e.preventDefault();
-    showHubLanding();
-    return;
-  }
-  if (e.target.closest('#hubPortalStock')) {
-    e.preventDefault();
-    showHubPanel('stock');
-    return;
-  }
-  if (e.target.closest('#hubPortalPlay')) {
-    e.preventDefault();
-    showHubPanel('play');
-    return;
-  }
   const llmBtn = e.target.closest('#hubLlmBtn');
   if (llmBtn) {
     e.preventDefault();

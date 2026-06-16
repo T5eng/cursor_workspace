@@ -1,21 +1,19 @@
 # 摸鱼驿站
 
-一个「正经工作一件没有，旁门左道样样精通」的纯前端合集：股票量化 + 扑克游戏，浏览器打开即玩，无依赖、无账号。
+纯前端扑克与小游戏合集，浏览器打开即玩，无依赖、无账号。
 
-## 在线入口（GitHub Pages）
+> ♠ ♥ ♦ ♣ 小丑牌、德州扑克、K线摩托、嘉靖朝跑团
+
+## 在线游玩（GitHub Pages）
 
 **https://t5eng.github.io/cursor_workspace/**
 
-门户分两大区：
+打开主菜单即可选择：
 
-| 入口 | 内容 |
+| 分类 | 内容 |
 |------|------|
-| **不务正业** | 做T量化分析（A股/港股/美股） |
-| **玩物丧志** | 小丑牌、德州扑克、K线摩托、嘉靖朝跑团 |
-
-### 做T量化分析
-
-**https://t5eng.github.io/cursor_workspace/t-trading/**
+| **主打** | 小丑牌、德州扑克（支持 LLM 对手） |
+| **小游戏** | K线摩托、嘉靖朝皇帝生存跑团 |
 
 推送到 `main` 后会自动部署到 `gh-pages` 分支（约 1–2 分钟）。
 
@@ -163,10 +161,6 @@ python3 -m http.server 8080 --bind 0.0.0.0
 .
 ├── index.html          # 入口
 ├── styles.css          # 美术 / 排版 / 动画
-├── t-trading/          # 做T量化分析（独立 GitHub Pages 路径）
-│   ├── index.html
-│   ├── styles.css
-│   └── src/            # api / indicators / analyzer / chart
 └── src/
     ├── main.js         # 主菜单 / 模式切换
     ├── cards.js        # 牌 / 牌组 / 扑克牌型识别
