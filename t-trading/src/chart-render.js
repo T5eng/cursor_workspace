@@ -1,4 +1,8 @@
-// Canvas 分时图渲染
+// Canvas 分时图渲染 · 仅当日 · 时间轴对齐开盘/收盘
+
+import {
+  timeToSessionMinute, totalSessionMinutes, minutesToTime, timeToMinutes
+} from './session.js';
 
 const COLORS = {
   bg: '#0d1117',
@@ -12,7 +16,8 @@ const COLORS = {
   buy: '#3fb950',
   sell: '#f85149',
   fib: 'rgba(210,153,34,0.45)',
-  bollFill: 'rgba(163,113,247,0.06)'
+  bollFill: 'rgba(163,113,247,0.06)',
+  lunch: 'rgba(48,54,61,0.5)'
 };
 
 function drawLine(ctx, points, color, dash = []) {
@@ -22,7 +27,7 @@ function drawLine(ctx, points, color, dash = []) {
   ctx.beginPath();
   let started = false;
   for (const { x, y } of points) {
-    if (y == null || Number.isNaN(y)) continue;
+    if (x == null || y == null || Number.isNaN(y)) continue;
     if (!started) { ctx.moveTo(x, y); started = true; }
     else ctx.lineTo(x, y);
   }
@@ -30,7 +35,7 @@ function drawLine(ctx, points, color, dash = []) {
   ctx.setLineDash([]);
 }
 
-export function renderChart(canvas, { candles, indicators, signals, levels }) {
+export function renderChart(canvas, { candles, indicators, signals, levels, market = 'cn', session, today }) {
   const dpr = window.devicePixelRatio || 1;
   const rect = canvas.getBoundingClientRect();
   const w = rect.width || canvas.width;
@@ -41,14 +46,41 @@ export function renderChart(canvas, { candles, indicators, signals, levels }) {
   const ctx = canvas.getContext('2d');
   ctx.scale(dpr, dpr);
 
-  const pad = { top: 24, right: 56, bottom: 36, left: 8 };
+  const pad = { top: 28, right: 56, bottom: 40, left: 44 };
   const plotW = w - pad.left - pad.right;
   const plotH = h - pad.top - pad.bottom;
 
   ctx.fillStyle = COLORS.bg;
   ctx.fillRect(0, 0, w, h);
 
-  if (!candles.length) return;
+  if (!candles.length) {
+    ctx.fillStyle = COLORS.text;
+    ctx.font = '13px Noto Sans SC, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('暂无当日分时数据', w / 2, h / 2);
+    return;
+  }
+
+  const sess = session || { open: '09:30', close: '15:00', segments: [{ start: '09:30', end: '15:00' }] };
+  const totalMins = totalSessionMinutes(market);
+  const periodMins = inferPeriodMinutes(candles, market);
+
+  function xAtTime(time) {
+    const sm = timeToSessionMinute(time, market);
+    return pad.left + (sm / totalMins) * plotW;
+  }
+
+  function xAtIndex(i) {
+    const c = candles[i];
+    if (!c?.time) return pad.left + (i / Math.max(1, candles.length - 1)) * plotW;
+    const sm = timeToSessionMinute(c.time, market);
+    // K 线中心取周期中点
+    return pad.left + ((sm + periodMins * 0.5) / totalMins) * plotW;
+  }
+
+  function yAt(p) {
+    return pad.top + (1 - (p - minP) / (maxP - minP)) * plotH;
+  }
 
   const prices = candles.flatMap((c) => [c.high, c.low]);
   if (indicators.upper) prices.push(...indicators.upper.filter(Boolean));
@@ -61,13 +93,9 @@ export function renderChart(canvas, { candles, indicators, signals, levels }) {
   maxP += margin;
 
   const n = candles.length;
-  const barW = Math.max(1.5, plotW / n * 0.6);
-  const gap = plotW / n;
+  const barW = Math.max(2, (periodMins / totalMins) * plotW * 0.75);
 
-  function xAt(i) { return pad.left + i * gap + gap / 2; }
-  function yAt(p) { return pad.top + (1 - (p - minP) / (maxP - minP)) * plotH; }
-
-  drawGrid(ctx, w, h, pad, minP, maxP, yAt);
+  drawSessionGrid(ctx, w, h, pad, plotW, plotH, minP, maxP, yAt, sess, market, totalMins, xAtTime);
 
   // Bollinger fill
   if (indicators.upper && indicators.lower) {
@@ -76,36 +104,32 @@ export function renderChart(canvas, { candles, indicators, signals, levels }) {
     let started = false;
     for (let i = 0; i < n; i++) {
       if (indicators.upper[i] == null) continue;
-      const x = xAt(i);
+      const x = xAtIndex(i);
       const y = yAt(indicators.upper[i]);
       if (!started) { ctx.moveTo(x, y); started = true; }
       else ctx.lineTo(x, y);
     }
     for (let i = n - 1; i >= 0; i--) {
       if (indicators.lower[i] == null) continue;
-      ctx.lineTo(xAt(i), yAt(indicators.lower[i]));
+      ctx.lineTo(xAtIndex(i), yAt(indicators.lower[i]));
     }
     ctx.closePath();
     ctx.fill();
   }
 
-  // MA10 / MA20
   if (indicators.ma10) {
-    drawLine(ctx, indicators.ma10.map((v, i) => ({ x: xAt(i), y: v != null ? yAt(v) : null })), COLORS.ma10);
+    drawLine(ctx, indicators.ma10.map((v, i) => ({ x: xAtIndex(i), y: v != null ? yAt(v) : null })), COLORS.ma10);
   }
   if (indicators.ma20) {
-    drawLine(ctx, indicators.ma20.map((v, i) => ({ x: xAt(i), y: v != null ? yAt(v) : null })), COLORS.ma20, [3, 2]);
+    drawLine(ctx, indicators.ma20.map((v, i) => ({ x: xAtIndex(i), y: v != null ? yAt(v) : null })), COLORS.ma20, [3, 2]);
   }
-
-  // VWAP
   if (indicators.vwapValues) {
-    drawLine(ctx, indicators.vwapValues.map((v, i) => ({ x: xAt(i), y: yAt(v) })), COLORS.vwap, [4, 3]);
+    drawLine(ctx, indicators.vwapValues.map((v, i) => ({ x: xAtIndex(i), y: yAt(v) })), COLORS.vwap, [4, 3]);
   }
 
-  // Candles
   for (let i = 0; i < n; i++) {
     const c = candles[i];
-    const x = xAt(i);
+    const x = xAtIndex(i);
     const yO = yAt(c.open);
     const yC = yAt(c.close);
     const yH = yAt(c.high);
@@ -133,7 +157,8 @@ export function renderChart(canvas, { candles, indicators, signals, levels }) {
   drawLevelLine(ctx, pad, plotW, yAt, levels.fib618, 'Fib62', COLORS.fib);
 
   for (const sig of signals) {
-    const x = xAt(sig.index);
+    if (sig.index < 0 || sig.index >= n) continue;
+    const x = xAtIndex(sig.index);
     const y = yAt(sig.price);
     const isBuy = sig.type === 'buy';
 
@@ -148,10 +173,27 @@ export function renderChart(canvas, { candles, indicators, signals, levels }) {
     ctx.fillText(isBuy ? 'B' : 'S', x, y + (isBuy ? 15 : -9));
   }
 
-  drawTimeLabels(ctx, candles, pad, plotW, h, gap);
+  drawTimeAxis(ctx, w, h, pad, plotW, sess, market, totalMins, xAtTime, today);
 }
 
-function drawGrid(ctx, w, h, pad, minP, maxP, yAt) {
+function inferPeriodMinutes(candles, market = 'cn') {
+  if (candles.length < 2) return 5;
+  const a = timeToSessionMinute(candles[0].time, market);
+  const b = timeToSessionMinute(candles[1].time, market);
+  const diff = Math.abs(b - a);
+  return diff > 0 ? diff : 5;
+}
+
+function drawSessionGrid(ctx, w, h, pad, plotW, plotH, minP, maxP, yAt, sess, market, totalMins, xAtTime) {
+  // 午休分隔（多段市场）
+  if (sess.segments?.length > 1) {
+    const lunchStart = timeToSessionMinute(sess.segments[0].end, market);
+    const xMid = pad.left + (lunchStart / totalMins) * plotW;
+    ctx.fillStyle = COLORS.lunch;
+    ctx.fillRect(xMid - 1, pad.top, 2, plotH);
+  }
+
+  // 水平价格格
   ctx.strokeStyle = COLORS.grid;
   ctx.lineWidth = 1;
   const steps = 5;
@@ -167,6 +209,60 @@ function drawGrid(ctx, w, h, pad, minP, maxP, yAt) {
     ctx.font = '10px JetBrains Mono, monospace';
     ctx.textAlign = 'left';
     ctx.fillText(p.toFixed(2), w - pad.right + 4, y + 3);
+  }
+
+  // 垂直时间格
+  const tickTimes = buildTickTimes(sess, market);
+  for (const t of tickTimes) {
+    const x = xAtTime(t);
+    ctx.strokeStyle = COLORS.grid;
+    ctx.globalAlpha = 0.5;
+    ctx.beginPath();
+    ctx.moveTo(x, pad.top);
+    ctx.lineTo(x, pad.top + plotH);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+}
+
+function buildTickTimes(sess, market) {
+  const ticks = [];
+  for (const seg of sess.segments) {
+    const start = timeToMinutes(seg.start);
+    const end = timeToMinutes(seg.end);
+    for (let m = start; m <= end; m += 30) {
+      ticks.push(minutesToTime(m));
+    }
+  }
+  return ticks;
+}
+
+function drawTimeAxis(ctx, w, h, pad, plotW, sess, market, totalMins, xAtTime, today) {
+  ctx.fillStyle = COLORS.text;
+  ctx.font = 'bold 10px JetBrains Mono, monospace';
+
+  const openX = pad.left;
+  ctx.textAlign = 'left';
+  ctx.fillText(sess.open, openX, h - 8);
+
+  const closeX = pad.left + plotW;
+  ctx.textAlign = 'right';
+  ctx.fillText(sess.close, closeX, h - 8);
+
+  ctx.font = '9px JetBrains Mono, monospace';
+  ctx.textAlign = 'center';
+  const midTimes = buildTickTimes(sess, market).filter((t) => t !== sess.open && t !== sess.close);
+  for (const t of midTimes) {
+    const x = xAtTime(t);
+    if (x < pad.left + 30 || x > pad.left + plotW - 30) continue;
+    ctx.fillText(t, x, h - 8);
+  }
+
+  if (today) {
+    ctx.textAlign = 'left';
+    ctx.font = '9px Noto Sans SC, sans-serif';
+    ctx.fillStyle = 'rgba(139,148,158,0.75)';
+    ctx.fillText(today, openX, pad.top - 8);
   }
 }
 
@@ -188,18 +284,4 @@ function drawLevelLine(ctx, pad, plotW, yAt, price, label, color) {
   ctx.font = '9px JetBrains Mono, monospace';
   ctx.textAlign = 'left';
   ctx.fillText(`${label} ${price.toFixed(2)}`, pad.left + 4, y - 3);
-}
-
-function drawTimeLabels(ctx, candles, pad, plotW, h, gap) {
-  const n = candles.length;
-  const step = Math.max(1, Math.floor(n / 6));
-  ctx.fillStyle = COLORS.text;
-  ctx.font = '9px JetBrains Mono, monospace';
-  ctx.textAlign = 'center';
-
-  for (let i = 0; i < n; i += step) {
-    const label = candles[i].datetime.slice(5, 16);
-    const x = pad.left + i * gap + gap / 2;
-    ctx.fillText(label, x, h - 10);
-  }
 }

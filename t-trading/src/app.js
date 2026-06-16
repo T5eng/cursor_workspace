@@ -4,6 +4,7 @@ import { fetchIntradayKline, fetchDailyKline, fetchQuote, loadPrefs } from './ap
 import { analyzeTPoints } from './analyzer.js';
 import { renderChart } from './chart-render.js';
 import { formatPrice, formatPct } from './indicators.js';
+import { prepareTodayChartData } from './session.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -158,18 +159,21 @@ async function runAnalysis() {
     renderSignals(analysis.signals);
     renderStrategy(analysis.strategy);
 
-    lastChartData = {
-      candles: intraday.candles,
-      indicators: analysis.indicators,
-      signals: analysis.signals,
-      levels: analysis.levels
-    };
+    lastChartData = prepareTodayChartData(
+      intraday.candles,
+      analysis.indicators,
+      analysis.signals,
+      intraday.meta.market || 'cn'
+    );
+    lastChartData.levels = analysis.levels;
     renderChart(mainChart, lastChartData);
+
+    const todayN = lastChartData.candles.length;
 
     const buyN = analysis.signals.filter((s) => s.type === 'buy').length;
     const sellN = analysis.signals.filter((s) => s.type === 'sell').length;
     setStatus(
-      `${intraday.meta.name} · ${intraday.meta.label} · ${period}分钟 · ${intraday.meta.count}根K线 · 低吸${buyN} / 高抛${sellN}` +
+      `${intraday.meta.name} · ${intraday.meta.label} · 当日${todayN}根 · ${period}分钟周期 · 低吸${buyN} / 高抛${sellN}` +
       (intraday.meta.source === 'mock' ? ' · [模拟数据]' : '')
     );
   } catch (err) {
