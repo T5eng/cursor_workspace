@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid slice">
+  <rect width="800" height="600" fill="#101820"/>
+  <ellipse cx="400" cy="300" rx="300" ry="200" fill="#1a2830" opacity="0.5"/>
+  <rect x="0" y="400" width="800" height="200" fill="#0a1018"/>
+  <circle cx="200" cy="200" r="3" fill="#5ad59b" opacity="0.2"/>
+  <circle cx="500" cy="180" r="2" fill="#5ad59b" opacity="0.15"/>
+  <circle cx="650" cy="250" r="2.5" fill="#e2455a" opacity="0.2"/>
+  <rect x="300" y="320" width="200" height="120" fill="#1a2028" stroke="#4ea0ff" stroke-opacity="0.15"/>
+</svg>

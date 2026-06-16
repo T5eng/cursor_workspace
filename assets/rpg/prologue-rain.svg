@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#14102a"/>
+      <stop offset="100%" stop-color="#1a0820"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="600" fill="url(#g)"/>
+  <g opacity="0.15" stroke="#8ec5ff" stroke-width="1">
+    <line x1="50" y1="0" x2="30" y2="80"/><line x1="150" y1="20" x2="130" y2="100"/>
+    <line x1="250" y1="0" x2="230" y2="90"/><line x1="350" y1="40" x2="330" y2="120"/>
+    <line x1="450" y1="10" x2="430" y2="95"/><line x1="550" y1="30" x2="530" y2="110"/>
+    <line x1="650" y1="0" x2="630" y2="85"/><line x1="750" y1="50" x2="730" y2="130"/>
+  </g>
+  <ellipse cx="400" cy="480" rx="360" ry="100" fill="#0a0610" opacity="0.7"/>
+  <path d="M200 380 Q400 280 600 360 L700 600 L100 600 Z" fill="#221028"/>
+  <rect x="310" y="320" width="180" height="90" fill="#2f1430" opacity="0.9"/>
+  <polygon points="300,320 400,250 500,320" fill="#3a1838"/>
+</svg>

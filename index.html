@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#160a17" />
+  <title>摸鱼驿站 · 扑克 & 跑团</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Noto+Serif+SC:wght@500;700;900&family=JetBrains+Mono:wght@500;700&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div id="hubScreen" class="hub-screen">
+    <div class="hub-card">
+      <div class="hub-brand">
+        <span class="hub-mark">♠♥♦♣</span>
+        <h1 class="hub-title">摸鱼驿站</h1>
+        <p class="hub-tagline">小丑牌 · 德州扑克 · K线摩托 · 嘉靖朝跑团</p>
+      </div>
+
+      <div class="hub-section">
+        <div class="hub-section-label">主打</div>
+        <div class="hub-actions">
+          <button type="button" class="btn btn-play hub-game-btn" id="hubBalatroBtn">
+            <span class="btn-main">🃏 小丑牌</span>
+            <span class="btn-sub">Balatro-style · 计分过关</span>
+          </button>
+          <button type="button" class="btn btn-discard hub-game-btn" id="hubHoldemBtn">
+            <span class="btn-main">♠️ 德州扑克</span>
+            <span class="btn-sub">NLHE · 规则 / LLM 对手</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="hub-section">
+        <div class="hub-section-label">小游戏</div>
+        <div class="hub-minigames" id="hubMinigames"></div>
+      </div>
+
+      <button type="button" class="ghost-btn hub-llm-btn" id="hubLlmBtn">LLM API 配置</button>
+      <p class="hub-hint">纯前端 · 无账号 · Token 仅存本机 localStorage（注意 CORS）</p>
+    </div>
+  </div>
+
+  <div id="app" class="mode-hidden">
+    <!-- LEFT: run info -->
+    <aside class="rail rail-left">
+      <div class="panel blind-panel" id="blindPanel">
+        <div class="panel-label">本轮目标</div>
+        <div class="blind-name" id="blindName">小盲</div>
+        <div class="blind-target">
+          <span class="chip-icon">◆</span>
+          <span id="blindTarget">300</span>
+        </div>
+        <div class="blind-reward">
+          奖励 <span class="gold">$<span id="blindReward">3</span></span>
+        </div>
+      </div>
+
+      <div class="panel score-panel">
+        <div class="panel-label">当前得分</div>
+        <div class="round-score" id="roundScore">0</div>
+        <div class="last-hand" id="lastHand">
+          <div class="last-hand-name">—</div>
+          <div class="last-hand-formula">
+            <span class="chips-pill">0</span>
+            <span class="x">×</span>
+            <span class="mult-pill">0</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel stats-panel">
+        <div class="stat">
+          <div class="stat-label">手牌</div>
+          <div class="stat-value blue" id="handsLeft">4</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">弃牌</div>
+          <div class="stat-value red" id="discardsLeft">3</div>
+        </div>
+        <div class="stat wide">
+          <div class="stat-label">资金</div>
+          <div class="stat-value gold" id="money">$4</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">关卡</div>
+          <div class="stat-value" id="ante">1 / 8</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">轮次</div>
+          <div class="stat-value" id="round">1</div>
+        </div>
+      </div>
+
+      <button class="ghost-btn" id="runInfoBtn">手牌等级 ▾</button>
+      <button class="ghost-btn codex-open-btn">图鉴</button>
+    </aside>
+
+    <!-- CENTER: table -->
+    <main class="table">
+      <header class="top-bar">
+        <div class="brand">
+          <span class="brand-mark">♠♥♦♣</span>
+          <span class="brand-title">小丑牌</span>
+          <span class="brand-sub">JOKER · POKER · ROGUELIKE</span>
+          <button type="button" class="ghost-btn brand-tutorial-btn" id="openCodexBtn" title="图鉴">图鉴</button>
+          <button type="button" class="ghost-btn brand-tutorial-btn" id="openTutorialBtn" title="新手教程">教程</button>
+        </div>
+        <div class="joker-row" id="jokerRow">
+          <!-- joker cards injected here -->
+        </div>
+      </header>
+
+      <section class="play-area">
+        <!-- Hand type preview -->
+        <div class="hand-preview" id="handPreview">
+          <div class="hand-preview-name">选择牌组成牌型</div>
+          <div class="hand-preview-formula">
+            <span class="chips-pill">0</span>
+            <span class="x">×</span>
+            <span class="mult-pill">0</span>
+          </div>
+        </div>
+
+        <!-- Played cards area (animation target) -->
+        <div class="played-row" id="playedRow"></div>
+
+        <!-- Player's hand -->
+        <div class="hand-row" id="handRow"></div>
+
+        <!-- Action buttons -->
+        <div class="actions">
+          <button class="btn btn-play" id="playBtn" disabled>
+            <span class="btn-main">出牌</span>
+            <span class="btn-sub">Play Hand</span>
+          </button>
+          <div class="sort-buttons">
+            <button class="btn btn-sort" id="sortRankBtn">按点数</button>
+            <button class="btn btn-sort" id="sortSuitBtn">按花色</button>
+          </div>
+          <button class="btn btn-discard" id="discardBtn" disabled>
+            <span class="btn-main">弃牌</span>
+            <span class="btn-sub">Discard</span>
+          </button>
+        </div>
+
+        <div class="deck-count">
+          <span id="deckCount">52</span> / <span id="deckTotal">52</span> 张
+          <span class="mobile-hint"> · 点选手牌 · 点小丑看说明 · 下方出牌/弃牌</span>
+        </div>
+      </section>
+    </main>
+
+    <!-- RIGHT: consumables -->
+    <aside class="rail rail-right">
+      <div class="panel consum-panel">
+        <div class="panel-label">补给物</div>
+        <div class="consum-row" id="consumRow"></div>
+      </div>
+      <div class="panel tips-panel">
+        <div class="panel-label">提示</div>
+        <ul class="tips">
+          <li>每出一手牌 = <b>筹码 × 倍数</b></li>
+          <li>组成 <b>对子 / 同花 / 顺子</b> 等可大幅加成</li>
+          <li>小/大盲可 <b>跳过</b> 换 Tag；Boss 带特殊规则</li>
+          <li>击败盲注 → <b>结算</b> → 商店买小丑与 <b>星球牌</b></li>
+          <li>小丑可 <b>拖拽排序</b>、右键出售；Blueprint 复制右侧</li>
+          <li>点击小丑或星球牌可查看详细说明</li>
+          <li>顶部/欢迎页 <b>图鉴</b> 记录已获得与未抽到的牌</li>
+        </ul>
+      </div>
+    </aside>
+
+    <!-- Modal: hand levels -->
+    <div class="modal hidden" id="handLevelsModal">
+      <div class="modal-card">
+        <header class="modal-header">
+          <h2>手牌等级</h2>
+          <button class="close-x" data-close>✕</button>
+        </header>
+        <div class="hand-levels" id="handLevelsList"></div>
+      </div>
+    </div>
+
+    <!-- Modal: cash out (Balatro-style payout before shop) -->
+    <div class="modal hidden" id="cashOutModal">
+      <div class="modal-card cashout-card">
+        <header class="modal-header">
+          <h2>结算</h2>
+        </header>
+        <div id="cashOutBody" class="cashout-body"></div>
+        <footer class="shop-footer">
+          <button type="button" class="btn btn-play" id="cashOutContinueBtn">
+            <span class="btn-main">进入商店</span>
+            <span class="btn-sub">Continue</span>
+          </button>
+        </footer>
+      </div>
+    </div>
+
+    <!-- Modal: shop -->
+    <div class="modal hidden" id="shopModal">
+      <div class="modal-card shop-card">
+        <header class="modal-header">
+          <h2>商店</h2>
+          <div class="shop-money">资金 <span class="gold" id="shopMoney">$0</span></div>
+        </header>
+        <div class="shop-grid" id="shopGrid"></div>
+        <footer class="shop-footer">
+          <button class="btn btn-discard" id="rerollBtn">重抽 $<span id="rerollCost">5</span></button>
+          <button class="btn btn-play" id="nextRoundBtn">
+            <span class="btn-main">下一轮</span>
+            <span class="btn-sub">Next Round</span>
+          </button>
+        </footer>
+      </div>
+    </div>
+
+    <!-- Modal: blind select -->
+    <div class="modal hidden" id="blindSelectModal">
+      <div class="modal-card blind-select-card">
+        <header class="modal-header">
+          <h2>选择盲注</h2>
+        </header>
+        <div class="blind-options" id="blindOptions"></div>
+      </div>
+    </div>
+
+    <!-- Modal: welcome -->
+    <div class="modal" id="welcomeModal">
+      <div class="modal-card welcome-card">
+        <div class="welcome-hero">
+          <span class="welcome-mark">♠♥♦♣</span>
+          <h1>小丑牌</h1>
+          <p class="welcome-tagline">扑克 Roguelike · 筹码 × 倍数 · 小丑 Combo</p>
+        </div>
+        <p class="welcome-desc">
+          用手牌组成牌型得分，击败盲注赚取金币，在商店购买小丑强化构筑，连过 8 关即可通关。
+        </p>
+        <div class="welcome-actions">
+          <button type="button" class="btn btn-play" id="startTutorialBtn">
+            <span class="btn-main">新手教程</span>
+            <span class="btn-sub">Interactive Tutorial</span>
+          </button>
+          <button type="button" class="btn btn-discard" id="startGameBtn">
+            <span class="btn-main">开始游戏</span>
+            <span class="btn-sub">Start Run</span>
+          </button>
+        </div>
+        <button type="button" class="ghost-btn welcome-resume hidden" id="resumeRunBtn">继续游戏</button>
+        <button type="button" class="ghost-btn welcome-resume hidden" id="resumeTutorialBtn">继续上次教程</button>
+        <button type="button" class="ghost-btn welcome-codex" id="welcomeCodexBtn">卡牌图鉴</button>
+        <p class="welcome-save-hint">正式局进度自动保存在本浏览器，可随时关闭页面后继续。</p>
+      </div>
+    </div>
+
+    <!-- Modal: codex / collection -->
+    <div class="modal hidden" id="codexModal">
+      <div class="modal-card codex-card-modal">
+        <header class="modal-header">
+          <h2>卡牌图鉴</h2>
+          <button class="close-x" data-close>✕</button>
+        </header>
+        <p class="codex-stats" id="codexStats"></p>
+        <div class="codex-tabs" id="codexTabs">
+          <button type="button" class="codex-tab active" data-codex-tab="jokers">小丑</button>
+          <button type="button" class="codex-tab" data-codex-tab="planets">星球</button>
+          <button type="button" class="codex-tab" data-codex-tab="hands">牌型</button>
+        </div>
+        <div class="codex-filters" id="codexFilters">
+          <button type="button" class="codex-filter active" data-codex-filter="all">全部</button>
+          <button type="button" class="codex-filter" data-codex-filter="obtained">已获得</button>
+          <button type="button" class="codex-filter" data-codex-filter="seen">已遇见</button>
+          <button type="button" class="codex-filter" data-codex-filter="unknown">未抽出</button>
+        </div>
+        <div class="codex-grid" id="codexGrid"></div>
+        <p class="codex-hint">进度保存在本浏览器 localStorage，换设备不共享。</p>
+      </div>
+    </div>
+
+    <!-- Modal: game over / win -->
+    <div class="modal hidden" id="endModal">
+      <div class="modal-card end-card">
+        <h2 id="endTitle">游戏结束</h2>
+        <p id="endText"></p>
+        <button class="btn btn-play" id="restartBtn">
+          <span class="btn-main">再来一局</span>
+          <span class="btn-sub">Restart Run</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Modal: item description (tap / click on jokers & shop items) -->
+    <div class="modal hidden" id="itemTipModal">
+      <div class="modal-card item-tip-card">
+        <header class="modal-header">
+          <h2 id="itemTipTitle">说明</h2>
+          <button type="button" class="close-x" data-close-item-tip aria-label="关闭">✕</button>
+        </header>
+        <p class="item-tip-body" id="itemTipBody"></p>
+        <footer class="item-tip-footer">
+          <button type="button" class="btn btn-play" id="itemTipCloseBtn">
+            <span class="btn-main">知道了</span>
+            <span class="btn-sub">OK</span>
+          </button>
+        </footer>
+      </div>
+    </div>
+
+    <!-- floating score popups portal -->
+    <div id="popupLayer" class="popup-layer"></div>
+  </div>
+
+  <div id="minigameApp" class="minigame-app mode-hidden">
+    <div class="rpg-backdrop" id="rpgBackdrop" aria-hidden="true">
+      <div class="rpg-backdrop-img"></div>
+      <div class="rpg-backdrop-mood"></div>
+      <div class="rpg-backdrop-vignette"></div>
+    </div>
+    <header class="minigame-top">
+      <button type="button" class="ghost-btn" data-back-hub>主菜单</button>
+      <div class="minigame-brand" id="minigameTitle">跑团</div>
+      <span class="minigame-spacer"></span>
+    </header>
+    <p class="rpg-scene-label" id="rpgSceneLabel" aria-hidden="true"></p>
+    <div id="minigameRoot" class="minigame-root"></div>
+  </div>
+
+  <div id="holdemApp" class="holdem-app mode-hidden">
+    <div class="modal hidden" id="holdemSetupModal">
+      <div class="modal-card holdem-setup-card">
+        <header class="modal-header"><h2>德州扑克 · 开局</h2></header>
+        <div class="holdem-setup-body">
+          <label class="holdem-bot-count">
+            <span>规则 Bot 数量</span>
+            <input type="number" id="holdemRuleBotCount" min="0" max="5" value="4" />
+          </label>
+          <label class="holdem-bot-count">
+            <span>LLM Bot 数量</span>
+            <input type="number" id="holdemLlmBotCount" min="0" max="5" value="1" />
+          </label>
+          <p class="holdem-setup-summary" id="holdemSetupSummary">共 6 人（你 + 4 规则 + 1 LLM）</p>
+          <p class="holdem-setup-hint" id="holdemSetupHint">盲注 5/10，起始筹码 1000。2～6 人（含你），至少 1 名对手。LLM Bot 需先在「LLM 配置」填写 Token。</p>
+          <p class="holdem-setup-hint holdem-setup-hint-warn hidden" id="holdemLlmWarn">未配置 LLM Token，LLM Bot 数量已限制为 0。</p>
+          <div class="holdem-setup-actions">
+            <button type="button" class="btn btn-play" id="holdemStartBtn">
+              <span class="btn-main">开始新局</span>
+            </button>
+            <button type="button" class="btn btn-discard hidden" id="holdemResumeBtn">继续牌局</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="holdemGameWrap" class="holdem-game-wrap hidden">
+    <header class="holdem-top">
+      <button type="button" class="ghost-btn" data-back-hub>主菜单</button>
+      <div class="holdem-brand"><span>♠♥♦♣</span> 德州扑克</div>
+      <button type="button" class="ghost-btn" id="holdemLlmBtn">LLM 配置</button>
+      <button type="button" class="ghost-btn" id="holdemSaveBtn">保存</button>
+    </header>
+    <div class="holdem-table-wrap">
+      <div class="holdem-felt">
+        <div class="holdem-board-zone" aria-label="公共牌与底池">
+          <div class="holdem-info-bar">
+            <span id="holdemStreet">翻牌前</span>
+            <span class="holdem-pot-label">底池 <strong id="holdemPot">0</strong></span>
+          </div>
+          <div class="holdem-board" id="holdemBoard"></div>
+        </div>
+        <div class="holdem-seats" id="holdemSeats"></div>
+        <p class="holdem-message" id="holdemMessage"></p>
+      </div>
+      <div id="holdemHeroHand" class="holdem-hero-hand" aria-label="你的手牌"></div>
+    </div>
+    <aside class="holdem-sidebar">
+      <div class="holdem-actions" id="holdemActions">
+        <div class="holdem-actions-primary">
+          <button type="button" class="btn btn-discard" id="holdemFold" disabled>
+            <span class="btn-main">弃牌</span>
+          </button>
+          <button type="button" class="btn btn-play" id="holdemCheckCall" disabled>
+            <span class="btn-main">过牌</span>
+          </button>
+          <button type="button" class="btn btn-sort" id="holdemRaise" disabled>
+            <span class="btn-main">加注</span>
+          </button>
+        </div>
+        <div class="holdem-raise-presets hidden" id="holdemRaisePresets"></div>
+        <div class="holdem-raise-wrap">
+          <input type="range" id="holdemRaiseSlider" min="0" max="100" disabled />
+          <span class="holdem-raise-amt" id="holdemRaiseLabel">$0</span>
+        </div>
+        <button type="button" class="btn btn-play holdem-next-hand hidden" id="holdemNextHand">
+          <span class="btn-main">下一手</span>
+        </button>
+      </div>
+      <div class="holdem-log" id="holdemLog"></div>
+    </aside>
+    </div>
+    <div class="modal hidden" id="holdemEndModal">
+      <div class="modal-card end-card">
+        <h2 id="holdemEndTitle">结束</h2>
+        <p id="holdemEndText"></p>
+        <button type="button" class="btn btn-play" id="holdemRestart">
+          <span class="btn-main">新桌</span>
+        </button>
+        <button type="button" class="ghost-btn" data-back-hub>主菜单</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal hidden" id="llmSettingsModal">
+    <div class="modal-card llm-settings-card">
+      <header class="modal-header">
+        <h2>LLM API 配置</h2>
+        <button type="button" class="close-x" data-close-llm>✕</button>
+      </header>
+      <form id="llmSettingsForm" class="llm-form">
+        <label>
+          <span>服务商</span>
+          <select id="llmProvider" name="provider"></select>
+        </label>
+        <label>
+          <span>API Base URL</span>
+          <input type="url" id="llmBaseUrl" placeholder="https://api.openai.com/v1" autocomplete="off" />
+        </label>
+        <label>
+          <span>模型</span>
+          <input type="text" id="llmModel" placeholder="gpt-4o-mini" autocomplete="off" />
+        </label>
+        <div class="llm-model-hints" id="llmModelHints"></div>
+        <label>
+          <span>LLM 人格 / 打法</span>
+          <select id="llmPersonality"></select>
+        </label>
+        <label class="llm-personality-custom-wrap hidden">
+          <span>自定义人格说明</span>
+          <textarea id="llmPersonalityCustom" rows="3" placeholder="例如：河牌圈爱诈唬，翻前只玩同花连张…"></textarea>
+        </label>
+        <label>
+          <span>API Token / Key</span>
+          <input type="password" id="llmApiKey" placeholder="sk-..." autocomplete="off" />
+        </label>
+        <div class="llm-row-2">
+          <label>
+            <span>Temperature</span>
+            <input type="number" id="llmTemperature" min="0" max="2" step="0.1" value="0.4" />
+          </label>
+          <label>
+            <span>Max tokens</span>
+            <input type="number" id="llmMaxTokens" min="32" max="512" value="120" />
+          </label>
+        </div>
+        <p class="llm-warning">
+          密钥仅存于本机浏览器。部分 API 禁止浏览器跨域调用；若失败可换 <b>OpenRouter</b> 或自建反向代理（填自定义 Base URL）。
+        </p>
+        <footer class="llm-form-footer">
+          <button type="submit" class="btn btn-play">保存</button>
+          <button type="button" class="btn btn-sort" id="llmTestBtn">测试连接</button>
+          <button type="button" class="btn btn-discard" id="llmClearKeyBtn">清除 Token</button>
+        </footer>
+        <p class="llm-status" id="llmSaveStatus"></p>
+        <p class="llm-status" id="llmTestStatus"></p>
+      </form>
+    </div>
+  </div>
+
+  <script type="module" src="./src/main.js"></script>
+  <!-- tutorial overlay injected by tutorial.js -->
+</body>
+</html>
